@@ -88,5 +88,7 @@ declare interface SchemaFenhongbaoRaw {
     vipView: string
     userView: string
     guestView: string
-    processed: number
+    cover: string
+    imgs: string[]
+    crawled: number
   }

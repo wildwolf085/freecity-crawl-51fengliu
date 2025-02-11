@@ -83,44 +83,20 @@ const initPuppeteer = async () => {
 const closeBrowser = async () => {
     await browser.close();
 }
-const imagehashes = {} as {[key: string]: string}
 
-async function downloadImage(goodlink: string, url: string, shopdir: string): Promise<string | null> {
+async function downloadImage(url: string, dir: string): Promise<string | null> {
     try {
         if (url.startsWith("//")) url = `https:${url}`;
-        const match = url.match(/^(https?\:)\/\/(([^:\/?#]*)(?:\:([0-9]+))?)([\/]{0,1}[^?#]*)(\?[^#]*|)(#.*|)$/);
-        // return match && {
-        //     href: href,
-        //     protocol: match[1],
-        //     host: match[2],
-        //     hostname: match[3],
-        //     port: match[4],
-        //     pathname: match[5],
-        //     search: match[6],
-        //     hash: match[7]
-        // }
-        let pathname = match[5]
-
-        // let _url = url.slice(url.lastIndexOf("/") + 1)
-        let p = pathname.lastIndexOf("!")
-        if (p!==-1) pathname = pathname.slice(0, p)
-        const imagehash = md5(pathname);
-        if (!!imagehashes[imagehash]) {
-            console.log(`\t\texists ${url}`)
-            return imagehashes[imagehash]
-        }
-        const imagedir = `${shopdir}/images`
-        if (!fs.existsSync(imagedir)) fs.mkdirSync(imagedir)
-        const name = md5(goodlink) + ".jpg"
-        const imageUri = `${imagedir}/${name}`
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+        const ext = path.extname(url)
+        const name = md5(url) + ext
+        const imageUri = `${dir}/${name}`
         if (fs.existsSync(imageUri)) {
-            // console.log(`\t\texists ${url}`)
             return name
         }
         const res = await axios.get(url, { responseType: 'arraybuffer' });
         fs.writeFileSync(imageUri, res.data);
         console.log(`\t\tdownload ${url}`)
-        imagehashes[imagehash] = name
         return name;
     } catch (error) {
         console.error(`Error downloading ${url}: ${error}`);
@@ -334,7 +310,7 @@ model.open().then(async () => {
         const endId = await getLastIdFromCollection(DFenhongbaoRaw)
         const batch = 1000
         for (let _id = startId; _id <= endId; _id+=batch) {
-            const rows = await DFenhongbaoRaw.find({_id: {$gte: _id, $lt: _id + batch}, $or: [{processed: {$exists: false}}, {processed: {$lt: Math.round(Date.now() / 1000) - 3 * 30 * 86400}}]}).toArray()
+            const rows = await DFenhongbaoRaw.find({_id: {$gte: _id, $lt: _id + batch}, $or: [{crawled: {$exists: false}}, {crawled: {$lt: Math.round(Date.now() / 1000) - 3 * 30 * 86400}}]}).toArray()
             
             console.log(`processing ${_id} to ${_id + batch}: ${rows.length} records`)
             for (const i of rows) {
@@ -346,9 +322,23 @@ model.open().then(async () => {
                             forceLogin(page)
                             continue
                         }
+
+                        if (data.coverPicture) {
+                            const image = await downloadImage(`https://s1.img115.xyz/info/picture/${data.coverPicture}`, `./data/`)
+                            data.cover = image
+                        }
+
+                        if (!!data.picture) {
+                            const x = data.picture.split(',')
+                            for (const img of x) {
+                                const image = await downloadImage(`https://s1.img115.xyz/info/picture/${img}`, `./data/`)
+                                data.imgs.push(image)
+                            }
+                        }
+
                         // const _id = data.id
                         delete data.id
-                        await DFenhongbaoRaw.updateOne({_id: i._id}, {$set: {...data, processed: Math.round(Date.now() / 1000)}})
+                        await DFenhongbaoRaw.updateOne({_id: i._id}, {$set: {...data, crawled: Math.round(Date.now() / 1000)}})
                         cnt++
                         console.log(`#${i._id} total ${cnt} ${+new Date() - time}ms`)
                         if (cnt % 10 === 0) {

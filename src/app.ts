@@ -416,8 +416,14 @@ model.open().then(async () => {
                         try {
                             await wait(10000)
                             const time = +new Date()
-                            const {records, pages, total} = await fetchPageData(page, city, i)
-                            
+                            const resp = await fetchPageData(page, city, i)
+                            if (!resp) {
+                                console.log(`\t\t#${city} ${province} ${cities[province][city]} 重试5次失败 重新登录`)
+                                forceLogin(page)
+                                continue
+                            }
+                            const {pages, records, total} = resp
+
                             if (records.length > 0) {
                                 await processPageData(records)
                             }
