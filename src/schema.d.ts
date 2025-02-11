@@ -43,3 +43,50 @@ declare interface SchemaFenhongbao {
     updated: number
     created: number
 }
+
+
+declare interface SchemaFenhongbaoRaw {
+    _id: number
+    userId: number
+    status: number
+    type: number
+    title: string
+    isRecommend: boolean
+    isMerchant: boolean
+    isExpired: boolean
+    source: number
+    score: number
+    viewCount: number
+    cityCode: number
+    girlNum: number
+    girlAge: string
+    girlBeauty: string
+    environment: string
+    consumeLv: string
+    consumeAllNight: string
+    serveList: string
+    serveLv: string
+    desc: string
+    qq: string
+    wechat: string
+    telegram: string
+    yuni: string
+    phone: string
+    address: string
+    picture: string
+    coverPicture: string
+    anonymous: boolean
+    publishedAt: number
+    createdAt: number
+    isFavorite: boolean
+    vipProfileStatus: number
+    publisher: string
+    userName: string
+    userReputation: string
+    userStatus: string
+    style: string
+    vipView: string
+    userView: string
+    guestView: string
+    processed: number
+  }

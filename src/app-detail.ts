@@ -5,7 +5,7 @@ import path from 'path';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import crypto from 'crypto';
-import model, { DFenhongbao, DFenhongbaoRaw } from "./model";
+import model, { DFenhongbao, DFenhongbaoRaw, getFirstIdFromCollection, getLastIdFromCollection } from "./model";
 import cities from "./cities.json";
 
 const md5 = (plain: string) => crypto.createHash('md5').update(plain).digest("hex")
@@ -225,6 +225,43 @@ const processPage = async (html: string, _id: number) => {
         return false;
     }
 };
+
+const shouldLogin = async (page: Page, html: string) => {
+    const $ = cheerio.load(html);
+    
+    // Check if login button exists
+    const loginText = $('button:contains("登录")');
+    if (loginText.length > 0) {
+        console.log("Need to login, attempting login...");
+        
+        // Click the login button
+        await page.evaluate(() => {
+            const loginBtn = document.querySelector('button.ant-btn-background-ghost') as HTMLElement;
+            if (loginBtn) loginBtn.click();
+        });
+        
+        // Wait for login form to appear
+        await wait(5000);
+        await page.focus('input[formcontrolname="name"]')
+        await page.keyboard.type(username)
+        await page.focus('input[formcontrolname="password"]')
+        await page.keyboard.type(password)
+        
+        // Submit login form
+        await page.evaluate(() => {
+            const submitBtn = document.querySelector('form button') as HTMLElement;
+            if (submitBtn) submitBtn.click();
+        });
+        
+        // Wait for login to complete
+        await wait(5000);
+        
+        return true;
+    }
+    return false;
+}
+
+
 const forceLogin = async (page: Page) => {
     await openUrl(page, "https://51fengliu.com/login")
     // Check if login button exists
@@ -247,41 +284,6 @@ const forceLogin = async (page: Page) => {
     await openUrl(page, "https://51fengliu.com")
 }
 
-
-const shouldLogin = async (page: Page, html: string) => {
-    const $ = cheerio.load(html);
-    
-    // Check if login button exists
-    const loginText = $('button:contains("登录")');
-    if (loginText.length > 0) {
-        console.log("Need to login, attempting login...");
-        
-        // Click the login button
-        await page.evaluate(() => {
-            const loginBtn = document.querySelector('button.ant-btn-background-ghost') as HTMLElement;
-            if (loginBtn) loginBtn.click();
-        });
-        
-        // Wait for login form to appear
-        await wait(5000);
-        await page.focus('input[formcontrolname="name"]')
-        await page.keyboard.type(username)
-        await page.focus('input[formcontrolname="password"]')
-        await page.keyboard.type(password)
-        // Submit login form
-        await page.evaluate(() => {
-            const submitBtn = document.querySelector('form button') as HTMLElement;
-            if (submitBtn) submitBtn.click();
-        });
-        
-        // Wait for login to complete
-        await wait(5000);
-        
-        return true;
-    }
-    return false;
-}
-
 const openUrl = async (page: Page, url: string) => {
     while(true) {
         try {
@@ -294,80 +296,30 @@ const openUrl = async (page: Page, url: string) => {
     }
 }
 
-const fetchPageData = async (page: Page, city: string, pageNo: number) => {
+const fetchDetailData = async (page: Page, id: number) => {
     try {
-        await page.evaluate((cityCode: string, pageNo: number) => {
+        await page.evaluate((id: number) => {
             try {
-                fetch(`https://51fengliu.com/api/web/info/page.json?sort=publish&cityCode=${cityCode}${pageNo > 1 ? `&page=${pageNo}` : ""}`, {
-                    "headers": { 
-                        "accept": "application/json, text/plain, */*",
-                        // "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJsYXN0TG9naW4iOjE3MzkyNTUxMTMsInN1YiI6ImNhbW9uYW5lc2kiLCJleHAiOjE3NDE5MzM1MTMsImlhdCI6MTczOTI1NTExMywianRpIjoiMTc1MjgzIn0.LhiQ4E53FFTZrEzz8rJpyRqsKxA0h19gViGlxDImEpo",
-                        // "cookie": "_ga=GA1.1.967000903.1739237082; KCND=; cf_clearance=bG08EwivLJGBjvTxP5_oPEpjaxjYUOK5kzvOZvGKGWs-1739253332-1.2.1.1-8XVrm7HHmXIm35maK8jsmOQ2JkCXPeguoC_QGd.6ImDnFzspxIsSaLYdJPhzl9C5paHEiz2Z6l6WyIAGchm.2sroE_ODt_EnU9yK2bOoN_5Z5kkHfad3QT3MruDzSI7brfuUhV25NXPss.Z0qINru.DX2AgrftzyBcc4.TuFuwA1zJvlpQADJqfnyl0xNHdDrtjllyzq8hoKFEMDosffeH7BaV2XVZSCjrhGCdPs2_x6WOyphN.6YVLiySaDOwov2POMCGEg2OiBlbrU9UO3SwOHpCozB4xsiWPoIwEu624; KATN=eyJhbGciOiJIUzI1NiJ9.eyJsYXN0TG9naW4iOjE3MzkyNTUxMTMsInN1YiI6ImNhbW9uYW5lc2kiLCJleHAiOjE3NDE5MzM1MTMsImlhdCI6MTczOTI1NTExMywianRpIjoiMTc1MjgzIn0.LhiQ4E53FFTZrEzz8rJpyRqsKxA0h19gViGlxDImEpo; _ga_FGKWP7HRDH=GS1.1.1739251440.4.1.1739255138.0.0.0"
-                      
-                    },
+                fetch(`https://51fengliu.com/api/web/info/detail.json?infoId=${id}`, {
+                    "headers": { "accept": "application/json, text/plain, */*" },
                     "body": null,
                     "method": "GET"
                 }).then(res => {
                     document.body.__data = res.json()
-                    
                 })    
             } catch (error) {
                 console.log(error)
             }
-        }, city, pageNo);
-        await wait(1500)
-        let repeat = 0
-        while(true) {
-            if (repeat > 5) {
-                console.log(`\t\t#${city} ${pageNo} 重试5次失败 重新登录`)
-                return null
-            }
-            const resp1 = await page.evaluate(() => {
-                return document.body.__data
-            });
-            if (resp1?.data) {
-                await page.evaluate(() => {
-                    delete document.body.__data
-                });
-                const {pages, records, total} = resp1.data
-                return {pages, records, total}
-            }
-            console.log(`\t\t#${city} ${pageNo} wait 1s`)
-            await wait(1000)
-            repeat++
-        }
+        }, id);
+        await wait(1000)
+        const resp = await page.evaluate(() => (document.body.__data));
+        return resp.data
+        
     } catch (error) {
         console.log(error)
 
     }
 }
-
-const processPageData = async (records: any[]) => {
-
-    await DFenhongbaoRaw.bulkWrite(records.map(i=>{
-        const _id = i.id
-        delete i.id
-        return {
-            updateOne: {
-                filter: {_id},
-                update: {$set: i},
-                upsert: true
-            }
-        }
-    }))
-}
-const state_filename = `${__dirname}/cities_state.json`
-
-const readState = () => {
-    if (fs.existsSync(state_filename)) {
-        return JSON.parse(fs.readFileSync(state_filename, 'utf8'))
-    }
-    return {}
-}
-const writeState = (state: any) => {
-    fs.writeFileSync(state_filename, JSON.stringify(state, null, '\t'))
-}
-
 
 model.open().then(async () => {
     try {
@@ -375,73 +327,38 @@ model.open().then(async () => {
         const page = await initPuppeteer();
         await openUrl(page, "https://51fengliu.com/")
         await wait(5000)
-        const state = await readState() as {[key: string]: {page: number, pages: number, total: number}}
         const html = await page.content()
         await shouldLogin(page, html)
         let cnt = 0
-        for (const province in cities) {
-
-            console.log(`${province} (${Object.keys(cities[province]).length})个城市`)
-            for (const city in cities[province]) {
-
-                if (state[city] && state[city].page >= state[city].pages) continue
-                
+        const startId = await getFirstIdFromCollection(DFenhongbaoRaw)
+        const endId = await getLastIdFromCollection(DFenhongbaoRaw)
+        const batch = 1000
+        for (let _id = startId; _id <= endId; _id+=batch) {
+            const rows = await DFenhongbaoRaw.find({_id: {$gte: _id, $lt: _id + batch}, $or: [{processed: {$exists: false}}, {processed: {$lt: Math.round(Date.now() / 1000) - 3 * 30 * 86400}}]}).toArray()
+            
+            console.log(`processing ${_id} to ${_id + batch}: ${rows.length} records`)
+            for (const i of rows) {
                 while(true) {
                     try {
                         const time = +new Date()
-                        const resp = await fetchPageData(page, city, 1)
-                        if (!resp) {
-                            console.log(`\t\t#${city} ${province} ${cities[province][city]} 重试5次失败 重新登录`)
+                        const data = await fetchDetailData(page, i._id) as any
+                        if (!data) {
                             forceLogin(page)
                             continue
                         }
-                        const {pages, records, total} = resp
-                        console.log(`#${city} ${province} ${cities[province][city]} ${pages}页 ${records.length}条记录 共${total}条记录 ${+new Date() - time}ms`)
-                        if (records.length > 0) await processPageData(records)
-                        state[city] = {page: 1, pages, total}
+                        // const _id = data.id
+                        delete data.id
+                        await DFenhongbaoRaw.updateOne({_id: i._id}, {$set: {...data, processed: Math.round(Date.now() / 1000)}})
                         cnt++
+                        console.log(`#${i._id} total ${cnt} ${+new Date() - time}ms`)
+                        if (cnt % 10 === 0) {
+                            console.log(`#${cnt} wait 10s`)
+                            await wait(10000)
+                        }
                         break
                     } catch (error) {
-                        console.log(`#${city} ${province} ${cities[province][city]} 报错 重试`)
+                        console.log(`#${i._id} 报错 重试`)
                         await wait(10000)
-                    }
-                }
-                writeState(state)
-                // if (state[city]) {
-
-                for (let i=state[city].page + 1; i<=state[city].pages; i++) {
-                    // console.log(`${province} ${cities[province][city]} 第${i}/${state[city].pages}页`)
-                    // for (let k = 0; k < 10; k++) {
-                    while(true) {
-                        try {
-                            await wait(10000)
-                            const time = +new Date()
-                            const {records, pages, total} = await fetchPageData(page, city, i)
-                            
-                            if (records.length > 0) {
-                                await processPageData(records)
-                            }
-
-                            if (records.length !== 30 && i<pages) {
-                                console.log(`#${city} ${province} ${cities[province][city]} 第${i}/${pages}页 ${records.length}条记录 共${total}条记录 数据异常 再试试`)
-                                await wait(10000)
-                                continue
-                            }
-                            state[city].pages = records.length !==30 ? i : pages
-                            state[city].total = total
-                            state[city].page = i
-                            
-                            writeState(state)
-                            console.log(`#${city} ${province} ${cities[province][city]} 第${i}/${pages}页 ${records.length}条记录 共${total}条记录 ${+new Date() - time}ms`)
-                            cnt++
-                            if (cnt % 10===0) {
-                                console.log(`#${cnt} wait 10s`)
-                                await wait(10000)
-                            }
-                            break
-                        } catch (error) {
-                            console.log(error)
-                        }
                     }
                 }
             }
