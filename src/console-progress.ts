@@ -53,7 +53,7 @@ class ConsoleProgress {
         // this.rl.clearLine(0);
         
         
-        const text = `${this.label}: ${progressBar} ${progress}% | ${this.processed}/${this.total || 1} (成功 ${successImage} 失败${failedImage}) | Elapsed: ${Date.now() - this.startTime}ms`
+        const text = `${this.label}: ${progressBar} ${progress}% | ${this.processed}/${this.total || 1} (成功 ${successImage} 失败 ${failedImage}) | ${(Date.now() - this.startTime) / 1000}s`
         process.stdout.removeAllListeners()
         process.stdout.cursorTo(0);
         process.stdout.clearLine(1);
