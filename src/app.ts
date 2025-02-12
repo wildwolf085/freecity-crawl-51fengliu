@@ -22,7 +22,8 @@ const StealthPlugin = require('puppeteer-extra-plugin-stealth')
 puppeteer.use(StealthPlugin())
 
 let showImage = false
-
+let failedImage = 0
+let successImage = 0
 let browser: Browser
 
 // const MetaKeys = {
@@ -136,6 +137,7 @@ async function downloadImage(url: string, dir: string): Promise<string | null> {
         //     return name
         // }
         if (await existsFileInGridFS(name)) {
+            successImage++
             return name
         }
         const res = await axios.get(url, { 
@@ -153,13 +155,15 @@ async function downloadImage(url: string, dir: string): Promise<string | null> {
             try {
                 const stat = fs.statSync(imageUri)
                 if (stat.size === 32533) {
-                    // console.log(`\t\t${url} 大小异常 ${stat.size}`)
+                    failedImage++
                     return null
                 } else {
                     await uploadToGridFS(imageUri)
+                    successImage++
                     // console.log(`\t\tdownload ${url}`)
                 }
             } catch (error) {
+                failedImage++
                 console.log(error)
             } finally {
                 fs.unlinkSync(imageUri)
@@ -474,7 +478,7 @@ model.open().then(async () => {
                         }
                         const {pages, records, total} = resp
                         // console.log(`#${city} ${province} ${cityName} ${pages}页 ${processedCnt + records.length}/${total}条记录 ${+new Date() - time}ms`)
-                        await processPageData(`#${city} ${province} ${cityName} 第1/${pages}页 ${processedCnt + records.length}/${total} 读取 ${((+new Date() - time) / 1000).toFixed(2)}s`, records)
+                        await processPageData(`#${city} ${province} ${cityName} 第1/${pages}页 ${processedCnt + records.length}/${total} 读取 ${((+new Date() - time) / 1000).toFixed(2)}s 图片 ${successImage} 成功 ${failedImage} 失败`, records)
                         state[city] = {page: 1, pages, total}
                         processedCnt += records.length
                         cnt++
@@ -507,7 +511,7 @@ model.open().then(async () => {
                             // }
                             process.stdout.removeAllListeners()
                             const isAbnormal = records.length !== 30 && i < pages
-                            await processPageData(`#${city} ${province} ${cityName} 第${i}/${pages}页${isAbnormal ? ' 异常' : ''}) ${processedCnt + records.length}/${total} 读取 ${((+new Date() - time) / 1000).toFixed(2)}s`, records)
+                            await processPageData(`#${city} ${province} ${cityName} 第${i}/${pages}页${isAbnormal ? ' 异常' : ''} ${processedCnt + records.length}/${total} 读取 ${((+new Date() - time) / 1000).toFixed(2)}s 图片 ${successImage} 成功 ${failedImage} 失败`, records)
 
                             if (isAbnormal) {
                                 await wait(10000)

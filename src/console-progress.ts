@@ -54,7 +54,7 @@ class ConsoleProgress {
         if (seconds < 60) return `${seconds}s`;
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = seconds % 60;
-        return `${minutes}m${remainingSeconds}s`;
+        return `${minutes}m ${remainingSeconds}s`;
     }
 
     private getEstimatedTimeRemaining(): string {
@@ -66,7 +66,7 @@ class ConsoleProgress {
     private async render() {
         const progress = (this.processed / this.total * 100).toFixed(1);
         const elapsedTime = this.formatTime(Date.now() - this.startTime);
-        const eta = this.getEstimatedTimeRemaining();
+        // const eta = this.getEstimatedTimeRemaining();
         const progressBar = this.getProgressBar();
         
         // Clear line and move cursor to start
@@ -79,10 +79,7 @@ class ConsoleProgress {
         // this.rl.clearLine(0);
         
 
-        const text = `${this.label}: ${progressBar} ${progress}% | ` +
-        `${this.processed}/${this.total} | ` +
-        `Elapsed: ${elapsedTime} | ` +
-        `ETA: ${eta}`
+        const text = `${this.label}: ${progressBar} ${progress}% | ${this.processed}/${this.total} | Elapsed: ${elapsedTime} | `
         // process.stdout.moveCursor(0, 0);
         process.stdout.cursorTo(0);
         process.stdout.clearLine(1);
