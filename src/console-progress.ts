@@ -87,6 +87,7 @@ class ConsoleProgress {
         process.stdout.cursorTo(0);
         process.stdout.clearLine(1);
         process.stdout.write(text, );
+        
         // console.clear();
         // console.log(text)
         // process.stdout.write(text);

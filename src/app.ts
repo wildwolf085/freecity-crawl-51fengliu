@@ -439,7 +439,7 @@ const writeState = (state: any) => {
 model.open().then(async () => {
     try {
         // await DFenhongbao.deleteMany({})
-        await convertRawToSchema()
+        // await convertRawToSchema()
         // return;
         fenhongbaoLastId = await getLastIdFromCollection(DFenhongbao)
         console.log("started")
@@ -473,8 +473,8 @@ model.open().then(async () => {
                             continue
                         }
                         const {pages, records, total} = resp
-                        // console.log(`#${city} ${province} ${cityName} ${pages}页 (${records.length}) ${processedCnt + records.length}/${total}条记录 ${+new Date() - time}ms`)
-                        await processPageData(`#${city} ${province} ${cityName} 第1/${pages}页 (${records.length}) ${processedCnt + records.length}/${total} 读取 ${((+new Date() - time) / 1000).toFixed(2)}s`, records)
+                        // console.log(`#${city} ${province} ${cityName} ${pages}页 ${processedCnt + records.length}/${total}条记录 ${+new Date() - time}ms`)
+                        await processPageData(`#${city} ${province} ${cityName} 第1/${pages}页 ${processedCnt + records.length}/${total} 读取 ${((+new Date() - time) / 1000).toFixed(2)}s`, records)
                         state[city] = {page: 1, pages, total}
                         processedCnt += records.length
                         cnt++
@@ -505,8 +505,9 @@ model.open().then(async () => {
                             // if (records.length > 0) {
                             //     await processPageData(records)
                             // }
+                            process.stdout.removeAllListeners()
                             const isAbnormal = records.length !== 30 && i < pages
-                            await processPageData(`#${city} ${province} ${cityName} 第${i}/${pages}页 (${records.length}${isAbnormal ? ' 异常' : ''}) ${processedCnt + records.length}/${total} 读取 ${((+new Date() - time) / 1000).toFixed(2)}s`, records)
+                            await processPageData(`#${city} ${province} ${cityName} 第${i}/${pages}页${isAbnormal ? ' 异常' : ''}) ${processedCnt + records.length}/${total} 读取 ${((+new Date() - time) / 1000).toFixed(2)}s`, records)
 
                             if (isAbnormal) {
                                 await wait(10000)
