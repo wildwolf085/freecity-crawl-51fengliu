@@ -1,4 +1,4 @@
-import readline from 'node:readline/promises';
+// import readline from 'node:readline/promises';
 
 class ConsoleProgress {
     private startTime: number;
@@ -7,7 +7,7 @@ class ConsoleProgress {
     private total: number;
     private label: string;
     private averageTime: number[];
-    private rl: readline.Interface;
+    // private rl: readline.Interface;
 
     constructor(total: number, label: string) {
         this.total = total;
@@ -16,14 +16,14 @@ class ConsoleProgress {
         this.startTime = Date.now();
         this.lastUpdateTime = this.startTime;
         this.averageTime = [];
-        this.rl = readline.createInterface({
-            input: process.stdin,
-            output: process.stdout
-        });
-        this.render();
+        // this.rl = readline.createInterface({
+        //     input: process.stdin,
+        //     output: process.stdout
+        // });
+        this.tick(0);
     }
 
-    async tick(count: number = 1) {
+    async tick(count: number = 1, successImage: number = 0, failedImage: number = 0) {
         this.processed += count;
         const now = Date.now();
         const timeSinceLastUpdate = now - this.lastUpdateTime;
@@ -38,34 +38,8 @@ class ConsoleProgress {
         }
         
         this.lastUpdateTime = now;
-        await this.render();
-    }
-
-    private getProgressBar(width: number = 30): string {
-        const progress = this.processed / this.total;
-        const filled = Math.round(width * progress);
-        const empty = width - filled;
-        return '[' + '█'.repeat(filled) + '░'.repeat(empty) + ']';
-    }
-
-    private formatTime(ms: number): string {
-        if (ms < 1000) return `${ms}ms`;
-        const seconds = Math.floor(ms / 1000);
-        if (seconds < 60) return `${seconds}s`;
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = seconds % 60;
-        return `${minutes}m ${remainingSeconds}s`;
-    }
-
-    private getEstimatedTimeRemaining(): string {
-        const avgTime = this.averageTime.reduce((a, b) => a + b, 0) / this.averageTime.length;
-        const remaining = this.total - this.processed;
-        return this.formatTime(avgTime * remaining);
-    }
-
-    private async render() {
         const progress = (this.processed / this.total * 100).toFixed(1);
-        const elapsedTime = this.formatTime(Date.now() - this.startTime);
+        // const elapsedTime = this.formatTime();
         // const eta = this.getEstimatedTimeRemaining();
         const progressBar = this.getProgressBar();
         
@@ -78,9 +52,9 @@ class ConsoleProgress {
         
         // this.rl.clearLine(0);
         
-
-        const text = `${this.label}: ${progressBar} ${progress}% | ${this.processed}/${this.total} | Elapsed: ${elapsedTime} | `
-        // process.stdout.moveCursor(0, 0);
+        
+        const text = `${this.label}: ${progressBar} ${progress}% | ${this.processed}/${this.total} (成功 ${successImage} 失败${failedImage}) | Elapsed: ${Date.now() - this.startTime}ms`
+        process.stdout.removeAllListeners()
         process.stdout.cursorTo(0);
         process.stdout.clearLine(1);
         process.stdout.write(text, );
@@ -93,6 +67,32 @@ class ConsoleProgress {
             process.stdout.write('\n');
         }
     }
+
+    private getProgressBar(width: number = 30): string {
+        const progress = this.processed / this.total;
+        const filled = Math.round(width * progress);
+        const empty = width - filled;
+        return '[' + '█'.repeat(filled) + '░'.repeat(empty) + ']';
+    }
+
+    // private formatTime(ms: number): string {
+    //     if (ms < 1000) return `${ms}ms`;
+    //     const seconds = Math.floor(ms / 1000);
+    //     if (seconds < 60) return `${seconds}s`;
+    //     const minutes = Math.floor(seconds / 60);
+    //     const remainingSeconds = seconds % 60;
+    //     return `${minutes}m ${remainingSeconds}s`;
+    // }
+
+    // private getEstimatedTimeRemaining(): string {
+    //     const avgTime = this.averageTime.reduce((a, b) => a + b, 0) / this.averageTime.length;
+    //     const remaining = this.total - this.processed;
+    //     return this.formatTime(avgTime * remaining);
+    // }
+
+    // private async render(successImage: number, failedImage: number) {
+        
+    // }
 }
 
 export default ConsoleProgress

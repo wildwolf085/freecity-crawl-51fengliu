@@ -22,8 +22,8 @@ const StealthPlugin = require('puppeteer-extra-plugin-stealth')
 puppeteer.use(StealthPlugin())
 
 let showImage = false
-let failedImage = 0
-let successImage = 0
+// let failedImage = 0
+// let successImage = 0
 let browser: Browser
 
 // const MetaKeys = {
@@ -137,7 +137,6 @@ async function downloadImage(url: string, dir: string): Promise<string | null> {
         //     return name
         // }
         if (await existsFileInGridFS(name)) {
-            successImage++
             return name
         }
         const res = await axios.get(url, { 
@@ -155,15 +154,11 @@ async function downloadImage(url: string, dir: string): Promise<string | null> {
             try {
                 const stat = fs.statSync(imageUri)
                 if (stat.size === 32533) {
-                    failedImage++
                     return null
                 } else {
                     await uploadToGridFS(imageUri)
-                    successImage++
-                    // console.log(`\t\tdownload ${url}`)
                 }
             } catch (error) {
-                failedImage++
                 console.log(error)
             } finally {
                 fs.unlinkSync(imageUri)
@@ -228,7 +223,7 @@ const fetchPageData = async (page: Page, city: string, pageNo: number) => {
                 const {pages, records, total} = resp1.data
                 return {pages, records, total}
             }
-            console.log(`\t\t#${city} ${pageNo} wait 1s`)
+            // console.log(`\t\t#${city} ${pageNo} wait 1s`)
             await wait(1000)
             repeat++
         }
@@ -283,7 +278,8 @@ const processPageData = async (label: string, records: Array<FenhongbaoRaw & {id
     }
     // console.log("");
     const bar = new ConsoleProgress(_cnt, label);
-
+    let successImage = 0
+    let failedImage = 0
     for (const i of records) {
         let cover = ""
         let imgs = []
@@ -292,21 +288,27 @@ const processPageData = async (label: string, records: Array<FenhongbaoRaw & {id
         if (i.coverPicture) {
             const image = await downloadImage(`https://s1.img115.xyz/info/picture/${i.coverPicture}`, `./data/`)
             if (image) {
+                successImage++
                 i.cover = image
+            } else {
+                failedImage++
             }
-            bar.tick()
+            bar.tick(1, successImage, failedImage)
         }
         
         for (const img of _imgs) {
             const image = await downloadImage(`https://s1.img115.xyz/info/picture/${img}`, `./data/`)
             if (!!image) {
                 imgs.push(image)
+                successImage++
+            } else {
+                failedImage++
             }
-            bar.tick()
+            bar.tick(1, successImage, failedImage)
         }
         let imgCnt = imgs.length
         if (i.isExpired) {
-            console.log(`expired: ${i.id}`)
+            // console.log(`expired: ${i.id}`)
             continue
         }
         const meta = {} as Record<string, string|number>
@@ -478,7 +480,7 @@ model.open().then(async () => {
                         }
                         const {pages, records, total} = resp
                         // console.log(`#${city} ${province} ${cityName} ${pages}页 ${processedCnt + records.length}/${total}条记录 ${+new Date() - time}ms`)
-                        await processPageData(`#${city} ${province} ${cityName} 第1/${pages}页 ${processedCnt + records.length}/${total} 读取 ${((+new Date() - time) / 1000).toFixed(2)}s 图片 ${successImage} 成功 ${failedImage} 失败`, records)
+                        await processPageData(`#${city} ${province} ${cityName} 第1/${pages}页 ${processedCnt + records.length}/${total} 读取 ${((+new Date() - time) / 1000).toFixed(2)}s`, records)
                         state[city] = {page: 1, pages, total}
                         processedCnt += records.length
                         cnt++
@@ -509,9 +511,9 @@ model.open().then(async () => {
                             // if (records.length > 0) {
                             //     await processPageData(records)
                             // }
-                            process.stdout.removeAllListeners()
+                            
                             const isAbnormal = records.length !== 30 && i < pages
-                            await processPageData(`#${city} ${province} ${cityName} 第${i}/${pages}页${isAbnormal ? ' 异常' : ''} ${processedCnt + records.length}/${total} 读取 ${((+new Date() - time) / 1000).toFixed(2)}s 图片 ${successImage} 成功 ${failedImage} 失败`, records)
+                            await processPageData(`#${city} ${province} ${cityName} 第${i}/${pages}页${isAbnormal ? ' 异常' : ''} ${processedCnt + records.length}/${total} 读取 ${((+new Date() - time) / 1000).toFixed(2)}s`, records)
 
                             if (isAbnormal) {
                                 await wait(10000)
