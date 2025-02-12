@@ -106,7 +106,16 @@ async function downloadImage(url: string, dir: string): Promise<string | null> {
         if (await existsFileInGridFS(name)) {
             return name
         }
-        const res = await axios.get(url, { responseType: 'arraybuffer' });
+        const res = await axios.get(url, { 
+            responseType: 'arraybuffer',
+            headers: {
+                'Accept': 'image/webp,image/*,*/*;q=0.8',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Referer': domain,
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36'
+            }
+         });
         fs.writeFileSync(imageUri, res.data);
         if (fs.existsSync(imageUri)) {
             try {
@@ -399,10 +408,13 @@ const writeState = (state: any) => {
 
 model.open().then(async () => {
     try {
+
+        await downloadImage("https://s1.img115.xyz/info/picture/250104/1afa7dcd-aa7d-499e-888f-ec2968749860.png", `${__dirname}/../data/`)
+        // await downloadImage("https://s1.img115.xyz/info/picture/250104/1afa7dcd-aa7d-499e-888f-ec2968749860.png", `${__dirname}/../data/`)
         console.log("started")
         const page = await initPuppeteer();
         // showImage = true
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 5.1; rv:5.0) Gecko/20100101 Firefox/5.0')
+        // await page.setUserAgent('Mozilla/5.0 (Windows NT 5.1; rv:5.0) Gecko/20100101 Firefox/5.0')
 
         await openUrl(page, domain)
         await wait(5000)
