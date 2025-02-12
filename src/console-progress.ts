@@ -38,7 +38,7 @@ class ConsoleProgress {
         }
         
         this.lastUpdateTime = now;
-        const progress = (this.processed / this.total * 100).toFixed(1);
+        const progress = (this.processed / (this.total || 1) * 100).toFixed(1);
         // const elapsedTime = this.formatTime();
         // const eta = this.getEstimatedTimeRemaining();
         const progressBar = this.getProgressBar();
@@ -53,7 +53,7 @@ class ConsoleProgress {
         // this.rl.clearLine(0);
         
         
-        const text = `${this.label}: ${progressBar} ${progress}% | ${this.processed}/${this.total} (成功 ${successImage} 失败${failedImage}) | Elapsed: ${Date.now() - this.startTime}ms`
+        const text = `${this.label}: ${progressBar} ${progress}% | ${this.processed}/${this.total || 1} (成功 ${successImage} 失败${failedImage}) | Elapsed: ${Date.now() - this.startTime}ms`
         process.stdout.removeAllListeners()
         process.stdout.cursorTo(0);
         process.stdout.clearLine(1);
@@ -69,7 +69,7 @@ class ConsoleProgress {
     }
 
     private getProgressBar(width: number = 30): string {
-        const progress = this.processed / this.total;
+        const progress = this.processed / (this.total || 1);
         const filled = Math.round(width * progress);
         const empty = width - filled;
         return '[' + '█'.repeat(filled) + '░'.repeat(empty) + ']';
