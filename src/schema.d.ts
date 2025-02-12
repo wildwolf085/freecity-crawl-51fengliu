@@ -21,33 +21,30 @@ declare interface FenhongbaoReply {
 }
 
 declare interface SchemaFenhongbao {
-    _id: number // 粉红豹ID
-    // uid: number // 用户ID
+    _id: number // seq ID
+    orgId: number // 51fengliu ID
     title: string // 粉红豹标题
     contents: string // 粉红豹描述
-    // type_id: number // 类型ID
-    // areaCode: number // 地区编码
-    province: string // 省份
-    city: string // 城市
-    district: string // 区县
-    contact: Record<string, string> // 联系方式
+    cityCode: number // 城市ID
+    contacts: null | Record<string, string> // 联系方式
     meta: Partial<FenhongbaoMeta>
     replies: FenhongbaoReply[]
+    pinned: boolean // 是否置顶
     replyCnt: number
     viewCnt: number
     anonymous: boolean
-    email: string
     imgCnt: number
     imgs: string[]
     cover: string
+    vipOnly: boolean
     actived: boolean
+    deleted: number
     updated: number
     created: number
 }
 
-
-declare interface SchemaFenhongbaoRaw {
-    _id: number
+declare interface FenhongbaoRaw {
+    // id: number
     userId: number
     status: number
     type: number
@@ -93,4 +90,8 @@ declare interface SchemaFenhongbaoRaw {
     imgs: string[]
     imgCnt: number
     crawled: number
-  }
+}
+
+declare interface SchemaFenhongbaoRaw extends FenhongbaoRaw {
+    _id: number
+}

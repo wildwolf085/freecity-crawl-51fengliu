@@ -5,8 +5,10 @@ const client = new MongoClient('mongodb://127.0.0.1:27017');
 export const db = client.db("freecity-241012")
 export const DFenhongbao = db.collection<SchemaFenhongbao>('fenhongbao2');	// 粉红豹
 export const DFenhongbaoRaw = db.collection<SchemaFenhongbaoRaw>('fenhongbao_51fengliu');	// 粉红豹
+export const DFenhongbaoRawDetail = db.collection<SchemaFenhongbaoRaw>('fenhongbao_51fengliu_deails');	// 粉红豹
 
 const initialize = async () => {
+	// await DFenhongbao.createIndex({ orgId: 1 }, { unique: true, name: 'fhb_orgid' });
 }
 
 const open = async () => {

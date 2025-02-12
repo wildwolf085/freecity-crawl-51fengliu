@@ -9,7 +9,8 @@
         "runtimeArgs": ["--nolazy", "-r", "ts-node/register/transpile-only"],
   
         "args": ["src/app.ts", "--test"],
-        
+        "console": "integratedTerminal", 
+        "outputCapture": "std",
         "cwd": "${workspaceRoot}",
         "internalConsoleOptions": "openOnSessionStart",
         "skipFiles": ["<node_internals>/**", "node_modules/**"]

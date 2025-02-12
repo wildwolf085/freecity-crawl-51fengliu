@@ -5,3 +5,4 @@ yarn.lock
 puppeteer
 cities_state.json
 cities_org.json
+config.json
