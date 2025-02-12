@@ -301,9 +301,6 @@ const fetchPageData = async (page: Page, city: string, pageNo: number) => {
                 fetch(`https://51fengliu.com/api/web/info/page.json?sort=publish&cityCode=${cityCode}${pageNo > 1 ? `&page=${pageNo}` : ""}`, {
                     "headers": { 
                         "accept": "application/json, text/plain, */*",
-                        // "authorization": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJsYXN0TG9naW4iOjE3MzkyNTUxMTMsInN1YiI6ImNhbW9uYW5lc2kiLCJleHAiOjE3NDE5MzM1MTMsImlhdCI6MTczOTI1NTExMywianRpIjoiMTc1MjgzIn0.LhiQ4E53FFTZrEzz8rJpyRqsKxA0h19gViGlxDImEpo",
-                        // "cookie": "_ga=GA1.1.967000903.1739237082; KCND=; cf_clearance=bG08EwivLJGBjvTxP5_oPEpjaxjYUOK5kzvOZvGKGWs-1739253332-1.2.1.1-8XVrm7HHmXIm35maK8jsmOQ2JkCXPeguoC_QGd.6ImDnFzspxIsSaLYdJPhzl9C5paHEiz2Z6l6WyIAGchm.2sroE_ODt_EnU9yK2bOoN_5Z5kkHfad3QT3MruDzSI7brfuUhV25NXPss.Z0qINru.DX2AgrftzyBcc4.TuFuwA1zJvlpQADJqfnyl0xNHdDrtjllyzq8hoKFEMDosffeH7BaV2XVZSCjrhGCdPs2_x6WOyphN.6YVLiySaDOwov2POMCGEg2OiBlbrU9UO3SwOHpCozB4xsiWPoIwEu624; KATN=eyJhbGciOiJIUzI1NiJ9.eyJsYXN0TG9naW4iOjE3MzkyNTUxMTMsInN1YiI6ImNhbW9uYW5lc2kiLCJleHAiOjE3NDE5MzM1MTMsImlhdCI6MTczOTI1NTExMywianRpIjoiMTc1MjgzIn0.LhiQ4E53FFTZrEzz8rJpyRqsKxA0h19gViGlxDImEpo; _ga_FGKWP7HRDH=GS1.1.1739251440.4.1.1739255138.0.0.0"
-                      
                     },
                     "body": null,
                     "method": "GET"
@@ -374,10 +371,10 @@ model.open().then(async () => {
         console.log("started")
         const page = await initPuppeteer();
         await openUrl(page, "https://51fengliu.com/")
-        await wait(5000)
+        await wait(30000)
         const state = await readState() as {[key: string]: {page: number, pages: number, total: number}}
-        const html = await page.content()
-        await shouldLogin(page, html)
+        // const html = await page.content()
+        // await shouldLogin(page, html)
         let cnt = 0
         for (const province in cities) {
 
@@ -392,7 +389,7 @@ model.open().then(async () => {
                         const resp = await fetchPageData(page, city, 1)
                         if (!resp) {
                             console.log(`\t\t#${city} ${province} ${cities[province][city]} 重试5次失败 重新登录`)
-                            forceLogin(page)
+                            await wait(10000)
                             continue
                         }
                         const {pages, records, total} = resp
@@ -419,7 +416,7 @@ model.open().then(async () => {
                             const resp = await fetchPageData(page, city, i)
                             if (!resp) {
                                 console.log(`\t\t#${city} ${province} ${cities[province][city]} 重试5次失败 重新登录`)
-                                forceLogin(page)
+                                await wait(10000)
                                 continue
                             }
                             const {pages, records, total} = resp

@@ -239,25 +239,29 @@ const shouldLogin = async (page: Page, html: string) => {
 
 
 const forceLogin = async (page: Page) => {
-    await openUrl(page, "https://51fengliu.com/login")
-    // Check if login button exists
+    try {
+        await openUrl(page, "https://51fengliu.com/login")
+        // Check if login button exists
         // Wait for login form to appear
-    await wait(5000);
-    await page.focus('input[formcontrolname="name"]')
-    await page.keyboard.type(username)
-    await page.focus('input[formcontrolname="password"]')
-    await page.keyboard.type(password)
-    
-    // Submit login form
-    await page.evaluate(() => {
-        const submitBtn = document.querySelector('form button') as HTMLElement;
-        if (submitBtn) submitBtn.click();
-    });
+        await wait(5000);
+        await page.focus('input[formcontrolname="name"]')
+        await page.keyboard.type(username)
+        await page.focus('input[formcontrolname="password"]')
+        await page.keyboard.type(password)
         
-        // Wait for login to complete
-    await wait(3000);
-        
-    await openUrl(page, "https://51fengliu.com")
+        // Submit login form
+        await page.evaluate(() => {
+            const submitBtn = document.querySelector('form button') as HTMLElement;
+            if (submitBtn) submitBtn.click();
+        });
+            
+            // Wait for login to complete
+        await wait(3000);
+            
+        await openUrl(page, "https://51fengliu.com")
+    } catch (error) {
+        console.log(error)
+    }
 }
 
 const openUrl = async (page: Page, url: string) => {
@@ -332,6 +336,7 @@ model.open().then(async () => {
                             const x = data.picture.split(',')
                             for (const img of x) {
                                 const image = await downloadImage(`https://s1.img115.xyz/info/picture/${img}`, `./data/`)
+                                if (!data.imgs) data.imgs = []
                                 data.imgs.push(image)
                             }
                         }
