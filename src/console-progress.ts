@@ -1,4 +1,7 @@
-// import readline from 'node:readline/promises';
+/*
+const progress = new ConsoleProgress(cnt, '转换原始数据')
+progress.tick()
+*/
 
 class ConsoleProgress {
     private startTime: number;
@@ -7,7 +10,6 @@ class ConsoleProgress {
     private total: number;
     private label: string;
     private averageTime: number[];
-    // private rl: readline.Interface;
 
     constructor(total: number, label: string) {
         this.total = total;
@@ -16,14 +18,10 @@ class ConsoleProgress {
         this.startTime = Date.now();
         this.lastUpdateTime = this.startTime;
         this.averageTime = [];
-        // this.rl = readline.createInterface({
-        //     input: process.stdin,
-        //     output: process.stdout
-        // });
         this.tick(0);
     }
 
-    async tick(count: number = 1, successImage: number = 0, failedImage: number = 0) {
+    async tick(count: number = 1, additionalInfo: string = '') {
         this.processed += count;
         const now = Date.now();
         const timeSinceLastUpdate = now - this.lastUpdateTime;
@@ -39,30 +37,14 @@ class ConsoleProgress {
         
         this.lastUpdateTime = now;
         const progress = (this.processed / (this.total || 1) * 100).toFixed(1);
-        // const elapsedTime = this.formatTime();
-        // const eta = this.getEstimatedTimeRemaining();
         const progressBar = this.getProgressBar();
-        
-        // Clear line and move cursor to start
-        // process.stdout.write('\r\x1b[K');
-        
-        // Render progress line
-        
-        
-        
-        // this.rl.clearLine(0);
-        
-        
-        const text = `${this.label}: ${progressBar} ${progress}% | ${this.processed}/${this.total || 1} (成功 ${successImage} 失败 ${failedImage}) | ${(Date.now() - this.startTime) / 1000}s`
+        const elapsedTime = (Date.now() - this.startTime)
+        const text = `${this.label}: ${progressBar} ${progress}% | ${this.processed}/${this.total || 1}${additionalInfo} | ${elapsedTime / 1000}s avg ${Math.round(elapsedTime / (this.processed || 1))}ms/条`
         process.stdout.removeAllListeners()
         process.stdout.cursorTo(0);
         process.stdout.clearLine(1);
         process.stdout.write(text, );
-        
-        // console.clear();
-        // console.log(text)
-        // process.stdout.write(text);
-        // If complete, move to next line
+
         if (this.processed >= this.total) {
             process.stdout.write('\n');
         }
@@ -74,25 +56,6 @@ class ConsoleProgress {
         const empty = width - filled;
         return '[' + '█'.repeat(filled) + '░'.repeat(empty) + ']';
     }
-
-    // private formatTime(ms: number): string {
-    //     if (ms < 1000) return `${ms}ms`;
-    //     const seconds = Math.floor(ms / 1000);
-    //     if (seconds < 60) return `${seconds}s`;
-    //     const minutes = Math.floor(seconds / 60);
-    //     const remainingSeconds = seconds % 60;
-    //     return `${minutes}m ${remainingSeconds}s`;
-    // }
-
-    // private getEstimatedTimeRemaining(): string {
-    //     const avgTime = this.averageTime.reduce((a, b) => a + b, 0) / this.averageTime.length;
-    //     const remaining = this.total - this.processed;
-    //     return this.formatTime(avgTime * remaining);
-    // }
-
-    // private async render(successImage: number, failedImage: number) {
-        
-    // }
 }
 
 export default ConsoleProgress

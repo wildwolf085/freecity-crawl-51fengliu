@@ -11,9 +11,6 @@ import { AnyBulkWriteOperation } from "mongodb";
 import { existsFileInGridFS, uploadToGridFS } from "./gridfs";
 import { getFirstIdFromCollection, getLastIdFromCollection } from "./model";
 import ConsoleProgress from './console-progress'
-// import Progress from "./progress";
-
-// const Progress = require('./progress.js')
 
 const md5 = (plain: string) => crypto.createHash('md5').update(plain).digest("hex")
 const wait = (mill: number) => (new Promise(resolve => setTimeout(resolve, Math.max(mill, 1000))))
@@ -293,7 +290,7 @@ const processPageData = async (label: string, records: Array<FenhongbaoRaw & {id
             } else {
                 failedImage++
             }
-            bar.tick(1, successImage, failedImage)
+            bar.tick(1, ` (图片 ${successImage} 失败 ${failedImage})`)
         }
         
         for (const img of _imgs) {
@@ -304,7 +301,7 @@ const processPageData = async (label: string, records: Array<FenhongbaoRaw & {id
             } else {
                 failedImage++
             }
-            bar.tick(1, successImage, failedImage)
+            bar.tick(1, ` (图片 ${successImage} 失败 ${failedImage})`)
         }
         let imgCnt = imgs.length
         if (i.isExpired) {
