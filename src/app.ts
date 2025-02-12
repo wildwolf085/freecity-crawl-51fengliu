@@ -7,6 +7,8 @@ import * as cheerio from 'cheerio';
 import crypto from 'crypto';
 import model, { DFenhongbao, DFenhongbaoRaw } from "./model";
 import cities from "./cities.json";
+import { AnyBulkWriteOperation } from "mongodb";
+import { existsFileInGridFS, uploadToGridFS } from "./gridfs";
 
 const md5 = (plain: string) => crypto.createHash('md5').update(plain).digest("hex")
 const wait = (mill: number) => (new Promise(resolve => setTimeout(resolve, Math.max(mill, 1000))))
@@ -44,7 +46,13 @@ const ContactKeys = {
     "Telegram ": "telegram",
     "地址": "address"
 }
-
+/*
+https://d.si305.xyz
+https://e.si192.xyz
+https://16at.xyz
+*/
+const domain = "https://mao527.xyz"
+const image_origin = "https://s1.img115.xyz/info/picture/"
 const initPuppeteer = async () => {
     const profileDir = `${__dirname}/../puppeteer`
 
@@ -85,42 +93,40 @@ const closeBrowser = async () => {
 }
 const imagehashes = {} as {[key: string]: string}
 
-async function downloadImage(goodlink: string, url: string, shopdir: string): Promise<string | null> {
+async function downloadImage(url: string, dir: string): Promise<string | null> {
     try {
         if (url.startsWith("//")) url = `https:${url}`;
-        const match = url.match(/^(https?\:)\/\/(([^:\/?#]*)(?:\:([0-9]+))?)([\/]{0,1}[^?#]*)(\?[^#]*|)(#.*|)$/);
-        // return match && {
-        //     href: href,
-        //     protocol: match[1],
-        //     host: match[2],
-        //     hostname: match[3],
-        //     port: match[4],
-        //     pathname: match[5],
-        //     search: match[6],
-        //     hash: match[7]
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+        const ext = path.extname(url)
+        const name = md5(url) + ext
+        const imageUri = `${dir}/${name}`
+        // if (fs.existsSync(imageUri)) {
+        //     return name
         // }
-        let pathname = match[5]
-
-        // let _url = url.slice(url.lastIndexOf("/") + 1)
-        let p = pathname.lastIndexOf("!")
-        if (p!==-1) pathname = pathname.slice(0, p)
-        const imagehash = md5(pathname);
-        if (!!imagehashes[imagehash]) {
-            console.log(`\t\texists ${url}`)
-            return imagehashes[imagehash]
-        }
-        const imagedir = `${shopdir}/images`
-        if (!fs.existsSync(imagedir)) fs.mkdirSync(imagedir)
-        const name = md5(goodlink) + ".jpg"
-        const imageUri = `${imagedir}/${name}`
-        if (fs.existsSync(imageUri)) {
-            // console.log(`\t\texists ${url}`)
+        if (await existsFileInGridFS(name)) {
             return name
         }
         const res = await axios.get(url, { responseType: 'arraybuffer' });
         fs.writeFileSync(imageUri, res.data);
-        console.log(`\t\tdownload ${url}`)
-        imagehashes[imagehash] = name
+        if (fs.existsSync(imageUri)) {
+            try {
+                const stat = fs.statSync(imageUri)
+                if (stat.size === 32533) {
+                    console.log(`\t\t${url} 大小异常 ${stat.size}`)
+                    return null
+                } else {
+                    await uploadToGridFS(imageUri)
+                    console.log(`\t\tdownload ${url}`)
+                }
+                    
+            } catch (error) {
+                console.log(error)
+            } finally {
+                fs.unlinkSync(imageUri)
+            }
+            
+        }
+        
         return name;
     } catch (error) {
         console.error(`Error downloading ${url}: ${error}`);
@@ -226,7 +232,7 @@ const processPage = async (html: string, _id: number) => {
     }
 };
 const forceLogin = async (page: Page) => {
-    await openUrl(page, "https://51fengliu.com/login")
+    await openUrl(page, `${domain}/login`)
     // Check if login button exists
         // Wait for login form to appear
     await wait(5000);
@@ -244,7 +250,7 @@ const forceLogin = async (page: Page) => {
         // Wait for login to complete
     await wait(3000);
         
-    await openUrl(page, "https://51fengliu.com")
+    await openUrl(page, domain)
 }
 
 
@@ -296,9 +302,11 @@ const openUrl = async (page: Page, url: string) => {
 
 const fetchPageData = async (page: Page, city: string, pageNo: number) => {
     try {
-        await page.evaluate((cityCode: string, pageNo: number) => {
+        await page.evaluate((domain: string, cityCode: string, pageNo: number) => {
             try {
-                fetch(`https://51fengliu.com/api/web/info/page.json?sort=publish&cityCode=${cityCode}${pageNo > 1 ? `&page=${pageNo}` : ""}`, {
+                const url = `${domain}/api/web/info/page.json?sort=publish&cityCode=${cityCode}${pageNo > 1 ? `&page=${pageNo}` : ""}`
+                console.log(url)
+                fetch(url, {
                     "headers": { 
                         "accept": "application/json, text/plain, */*",
                     },
@@ -307,11 +315,13 @@ const fetchPageData = async (page: Page, city: string, pageNo: number) => {
                 }).then(res => {
                     document.body.__data = res.json()
                     
-                })    
+                }).catch(error => { 
+                    console.log(error)
+                })
             } catch (error) {
                 console.log(error)
             }
-        }, city, pageNo);
+        }, domain, city, pageNo);
         await wait(1500)
         let repeat = 0
         while(true) {
@@ -340,18 +350,39 @@ const fetchPageData = async (page: Page, city: string, pageNo: number) => {
 }
 
 const processPageData = async (records: any[]) => {
-
-    await DFenhongbaoRaw.bulkWrite(records.map(i=>{
+    const data = [] as AnyBulkWriteOperation<SchemaFenhongbaoRaw>[]
+    for (const i of records) {
+        i.cover = ""
+        i.imgs = []
+        if (i.coverPicture) {
+            const image = await downloadImage(`https://s1.img115.xyz/info/picture/${i.coverPicture}`, `./data/`)
+            if (image) {
+                i.cover = image
+            }
+        }
+        
+        if (!!i.picture) {
+            
+            const x = i.picture.split(',')
+            for (const img of x) {
+                const image = await downloadImage(`https://s1.img115.xyz/info/picture/${img}`, `./data/`)
+                if (!!image) {
+                    i.imgs.push(image)
+                }
+            }
+        }
+        i.imgCnt = i.imgs.length
         const _id = i.id
         delete i.id
-        return {
+        data.push({
             updateOne: {
                 filter: {_id},
                 update: {$set: i},
                 upsert: true
             }
-        }
-    }))
+        })
+    }
+    await DFenhongbaoRaw.bulkWrite(data)
 }
 const state_filename = `${__dirname}/cities_state.json`
 
@@ -370,8 +401,13 @@ model.open().then(async () => {
     try {
         console.log("started")
         const page = await initPuppeteer();
-        await openUrl(page, "https://51fengliu.com/")
-        await wait(30000)
+        // showImage = true
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 5.1; rv:5.0) Gecko/20100101 Firefox/5.0')
+
+        await openUrl(page, domain)
+        await wait(5000)
+        // showImage = false
+
         const state = await readState() as {[key: string]: {page: number, pages: number, total: number}}
         // const html = await page.content()
         // await shouldLogin(page, html)

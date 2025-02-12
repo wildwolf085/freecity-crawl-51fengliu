@@ -39,6 +39,7 @@ declare interface SchemaFenhongbao {
     email: string
     imgCnt: number
     imgs: string[]
+    cover: string
     actived: boolean
     updated: number
     created: number
@@ -90,5 +91,6 @@ declare interface SchemaFenhongbaoRaw {
     guestView: string
     cover: string
     imgs: string[]
+    imgCnt: number
     crawled: number
   }
