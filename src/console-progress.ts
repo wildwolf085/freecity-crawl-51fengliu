@@ -12,6 +12,10 @@ class ConsoleProgress {
     private averageTime: number[];
 
     constructor(total: number, label: string) {
+        if (!process.stdout.isTTY) {
+            console.log("ConsoleProgress is not supported in non-TTY mode")
+            return
+        }
         this.total = total;
         this.label = label;
         this.processed = 0;
@@ -22,6 +26,10 @@ class ConsoleProgress {
     }
 
     async tick(count: number = 1, additionalInfo: string = '') {
+        if (!process.stdout.isTTY) {
+            console.log("ConsoleProgress is not supported in non-TTY mode")
+            return
+        }
         this.processed += count;
         const now = Date.now();
         const timeSinceLastUpdate = now - this.lastUpdateTime;
@@ -39,7 +47,7 @@ class ConsoleProgress {
         const progress = (this.processed / (this.total || 1) * 100).toFixed(1);
         const progressBar = this.getProgressBar();
         const elapsedTime = (Date.now() - this.startTime)
-        const text = `${this.label}: ${progressBar} ${progress}% | ${this.processed}/${this.total || 1}${additionalInfo} | ${elapsedTime / 1000}s avg ${Math.round(elapsedTime / (this.processed || 1))}ms/条`
+        const text = `${this.label}: ${progressBar} ${progress}% | ${this.processed} / ${this.total}${additionalInfo} | ${elapsedTime / 1000}s avg ${Math.round(elapsedTime / (this.processed || 1)) / 1000}s/条`
         process.stdout.removeAllListeners()
         process.stdout.cursorTo(0);
         process.stdout.clearLine(1);

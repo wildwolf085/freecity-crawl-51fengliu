@@ -181,6 +181,14 @@ const openUrl = async (page: Page, url: string) => {
     }
 }
 
+declare namespace NodeJS {
+    interface HTMLElement {
+        
+        __data: any
+    }
+}
+
+
 const fetchPageData = async (page: Page, city: string, pageNo: number) => {
     try {
         await page.evaluate((domain: string, cityCode: string, pageNo: number) => {
@@ -230,50 +238,48 @@ const fetchPageData = async (page: Page, city: string, pageNo: number) => {
     }
 }
 
-const processPageData2 = async (records: any[]) => {
-    const data = [] as AnyBulkWriteOperation<SchemaFenhongbaoRaw>[]
-    for (const i of records) {
-        i.cover = ""
-        i.imgs = []
-        if (i.coverPicture) {
-            const image = await downloadImage(`https://s1.img115.xyz/info/picture/${i.coverPicture}`, `./data/`)
-            if (image) {
-                i.cover = image
-            }
-        }
+// const processPageData2 = async (records: any[]) => {
+//     const data = [] as AnyBulkWriteOperation<SchemaFenhongbaoRaw>[]
+//     for (const i of records) {
+//         i.cover = ""
+//         i.imgs = []
+//         if (i.coverPicture) {
+//             const image = await downloadImage(`https://s1.img115.xyz/info/picture/${i.coverPicture}`, `./data/`)
+//             if (image) {
+//                 i.cover = image
+//             }
+//         }
         
-        if (!!i.picture) {
+//         if (!!i.picture) {
             
-            const x = i.picture.split(',')
-            for (const img of x) {
-                const image = await downloadImage(`https://s1.img115.xyz/info/picture/${img}`, `./data/`)
-                if (!!image) {
-                    i.imgs.push(image)
-                }
-            }
-        }
-        i.imgCnt = i.imgs.length
-        const _id = i.id
-        delete i.id
-        data.push({
-            updateOne: {
-                filter: {_id},
-                update: {$set: i},
-                upsert: true
-            }
-        })
-    }
-    await DFenhongbaoRaw.bulkWrite(data)
-}
+//             const x = i.picture.split(',')
+//             for (const img of x) {
+//                 const image = await downloadImage(`https://s1.img115.xyz/info/picture/${img}`, `./data/`)
+//                 if (!!image) {
+//                     i.imgs.push(image)
+//                 }
+//             }
+//         }
+//         i.imgCnt = i.imgs.length
+//         const _id = i.id
+//         delete i.id
+//         data.push({
+//             updateOne: {
+//                 filter: {_id},
+//                 update: {$set: i},
+//                 upsert: true
+//             }
+//         })
+//     }
+//     await DFenhongbaoRaw.bulkWrite(data)
+// }
 
 const processPageData = async (label: string, records: Array<FenhongbaoRaw & {id: number}>) => {
-    // const data = [] as AnyBulkWriteOperation<SchemaFenhongbao>[]
     let _cnt = 0
     for (const i of records) {
         let _imgs = !!i.picture ? i.picture.split(',') : []
         _cnt += (i.coverPicture ? 1 : 0) + _imgs.length
     }
-    // console.log("");
     const bar = new ConsoleProgress(_cnt, label);
     let successImage = 0
     let failedImage = 0
