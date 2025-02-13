@@ -487,8 +487,10 @@ model.open().then(async () => {
                         if (state[city]) {
                             state[city].pages = pages
                             state[city].total = total
+                            processedCnt = (state[city].page - 1) * 30
                         } else {
                             state[city] = {page: 1, pages, total}
+
                         }
                         processedCnt += records.length
                         cnt++
