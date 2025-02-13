@@ -484,7 +484,12 @@ model.open().then(async () => {
                         const {pages, records, total} = resp
                         // console.log(`#${city} ${province} ${cityName} ${pages}页 ${processedCnt + records.length}/${total}条记录 ${+new Date() - time}ms`)
                         await processPageData(`#${city} ${province} ${cityName} 第1/${pages}页 ${processedCnt + records.length}/${total} 读取 ${((+new Date() - time) / 1000).toFixed(2)}s`, records)
-                        state[city] = {page: 1, pages, total}
+                        if (state[city]) {
+                            state[city].pages = pages
+                            state[city].total = total
+                        } else {
+                            state[city] = {page: 1, pages, total}
+                        }
                         processedCnt += records.length
                         cnt++
                         break
