@@ -351,7 +351,7 @@ model.open().then(async () => {
         let cnt = 0
 
         let startId = await getFirstIdFromCollection(DFenhongbao)
-        const rows = await DFenhongbao.find({contacts: {$exists: true}}).sort({_id: -1}).limit(1).toArray()
+        const rows = await DFenhongbao.find({contacts: {$ne: null}}).sort({_id: -1}).limit(1).toArray()
         if (rows.length > 0) {
             startId = rows[0]._id + 1
         } else {
