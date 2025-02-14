@@ -310,12 +310,12 @@ const fetchDetailData = async (page: Page, id: number) => {
                 console.log(error)
             }
         }, domain, id);
-        await wait(1500)
+        await wait(1000)
         let repeat = 0
 
         while(true) {
-            if (repeat > 5) {
-                console.log(`\t\t#${id} 重试5次失败 重新登录`)
+            if (repeat > 2) {
+                console.log(`\t\t#${id} 重试${repeat}次失败`)
                 return null
             }
             const resp1 = await page.evaluate(() => {
@@ -326,6 +326,9 @@ const fetchDetailData = async (page: Page, id: number) => {
                     delete document.body.__data
                 });
                 return resp1.data
+            } else if (resp1?.data===null){
+                console.log(`\t\t#${id} 没有数据`)
+                return null
             }
             console.log(`\t\t#${id} wait 1s`)
             await wait(1000)
@@ -364,7 +367,7 @@ model.open().then(async () => {
                 while(true) {
                     try {
                         const time = +new Date()
-                        await wait(3000)
+                        // await wait(1000)
                         const d = await DFenhongbaoRawDetail.findOne({_id: i._id})
                         let v = d || await fetchDetailData(page, i._id) as SchemaFenhongbaoRaw
                         if (v) {
@@ -384,7 +387,6 @@ model.open().then(async () => {
                             }
                             delete v["id"]
                             if (!d) {
-                                await wait(1000)
                                 await DFenhongbaoRawDetail.updateOne(
                                     {_id: i._id},
                                     {$set: v},
