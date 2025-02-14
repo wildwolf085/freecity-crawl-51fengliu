@@ -11,6 +11,7 @@ import config from './config.json'
 const md5 = (plain: string) => crypto.createHash('md5').update(plain).digest("hex")
 const wait = (mill: number) => (new Promise(resolve => setTimeout(resolve, Math.max(mill, 1000))))
 import colors from 'colors'
+import ConsoleProgress from "./console-progress";
 // const username = ""
 // const password = ""
 
@@ -342,6 +343,10 @@ const fetchDetailData = async (page: Page, id: number) => {
 
 model.open().then(async () => {
     try {
+        const bar1 = new ConsoleProgress(0, `详情 ${0}`);
+        bar1.tick(1, ` | ${true ? colors.green("成功") : colors.red("失败")} (${0} / ${0})`)
+
+
         console.log("started")
         const page = await initPuppeteer();
         await openUrl(page, domain)
@@ -367,7 +372,10 @@ model.open().then(async () => {
 
         console.log(`startId: ${startId} endId: ${endId} total: ${count}`)
         let success = 0
+        const bar = new ConsoleProgress(count, `详情 共 ${count}`);
+
         for (let _id = startId; _id <= endId; _id+=batch) {
+            
             const rows = await DFenhongbao.find({_id: {$gte: _id, $lt: _id + batch}}).toArray()
             
             console.log(`processing ${_id} to ${_id + batch}: ${rows.length} records`)
@@ -384,46 +392,48 @@ model.open().then(async () => {
                     continue
                 }
                 // , $or: [{contracts: null}, {updated: {$lt: Math.round(Date.now() / 1000) - 3 * 30 * 86400}}]
-                while(true) {
-                    try {
-                        const time = +new Date()
-                        await wait(10000)
-                        const v = await fetchDetailData(page, i._id) as SchemaFenhongbaoRaw
-                        let bSuccess = false
-                        if (v) {
-                            const contacts = {} as Record<string, string>
-                            for (let field of contactFields) {
-                                if (field in v && !!v[field] && isValidValue(v[field])) {
-                                    contacts[field] = v[field]
-                                }
+                // while(true) {
+                try {
+                    // const time = +new Date()
+                    await wait(10000)
+                    const v = await fetchDetailData(page, i._id) as SchemaFenhongbaoRaw
+                    let bSuccess = false
+                    if (v) {
+                        const contacts = {} as Record<string, string>
+                        for (let field of contactFields) {
+                            if (field in v && !!v[field] && isValidValue(v[field])) {
+                                contacts[field] = v[field]
                             }
-                            const contactCnt = Object.keys(contacts).length
-                            success++
-                            const timestamp = Math.round(Date.now() / 1000)
-                            await DFenhongbao.updateOne(
-                                {_id: i._id}, 
-                                {$set: { updated: timestamp, contacts, contactCnt, actived: true }}
-                            )
-                            bSuccess = true
-                            delete v["id"]
-                            await DFenhongbaoRawDetail.updateOne(
-                                {_id: i._id},
-                                {$set: v},
-                                {upsert: true}
-                            )
                         }
-                        cnt++
-                        console.log(`${colors.gray(new Date().toLocaleTimeString('en-US', {}).replace(/[^\d]/g, '-'))} #${i._id} | ${cnt}/${count} | ${bSuccess ? colors.green("成功") : colors.red("失败")} (${success} / ${cnt - success}) | ${+new Date() - time}ms `)
-                        // if (cnt % 10 === 0) {
-                        //     console.log(`#${cnt} wait 10s`)
-                        //     await wait(30000)
-                        // }
-                        break
-                    } catch (error) {
-                        console.log(`#${i._id} 报错 重试`)
-                        await wait(10000)
+                        const contactCnt = Object.keys(contacts).length
+                        success++
+                        const timestamp = Math.round(Date.now() / 1000)
+                        await DFenhongbao.updateOne(
+                            {_id: i._id}, 
+                            {$set: { updated: timestamp, contacts, contactCnt, actived: true }}
+                        )
+                        bSuccess = true
+                        delete v["id"]
+                        await DFenhongbaoRawDetail.updateOne(
+                            {_id: i._id},
+                            {$set: v},
+                            {upsert: true}
+                        )
                     }
+                    cnt++
+                    // console.log(`${colors.gray(new Date().toLocaleTimeString('en-US', {}).replace(/[^\d]/g, '-'))} #${i._id} | ${cnt}/${count} | ${bSuccess ? colors.green("成功") : colors.red("失败")} (${success} / ${cnt - success}) | ${+new Date() - time}ms `)
+
+                    bar.tick(1, ` | ${bSuccess ? colors.green("成功") : colors.red("失败")} (${success} / ${cnt - success})`)
+                    // if (cnt % 10 === 0) {
+                    //     console.log(`#${cnt} wait 10s`)
+                    //     await wait(30000)
+                    // }
+                    break
+                } catch (error) {
+                    console.log(`#${i._id} 报错 重试`)
+                    await wait(10000)
                 }
+                // }
             }
         }
         await closeBrowser()
