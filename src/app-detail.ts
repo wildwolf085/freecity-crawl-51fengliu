@@ -349,9 +349,23 @@ model.open().then(async () => {
         const html = await page.content()
         await shouldLogin(page, html)
         let cnt = 0
-        const startId = await getFirstIdFromCollection(DFenhongbao)
+
+        let startId = await getFirstIdFromCollection(DFenhongbao)
+        const rows = await DFenhongbao.find({contacts: {$exists: true}}).sort({_id: -1}).limit(1).toArray()
+        if (rows.length > 0) {
+            startId = rows[0]._id + 1
+        } else {
+            startId = 1
+        }
+        
+
+        
         const endId = await getLastIdFromCollection(DFenhongbao)
+        
         const batch = 1000
+        const count = endId - startId + 1
+
+        console.log(`startId: ${startId} endId: ${endId} total: ${count}`)
         let success = 0
         for (let _id = startId; _id <= endId; _id+=batch) {
             const rows = await DFenhongbao.find({_id: {$gte: _id, $lt: _id + batch}}).toArray()
@@ -374,8 +388,7 @@ model.open().then(async () => {
                     try {
                         const time = +new Date()
                         await wait(10000)
-                        const d = await DFenhongbaoRawDetail.findOne({_id: i._id})
-                        let v = d || await fetchDetailData(page, i._id) as SchemaFenhongbaoRaw
+                        const v = await fetchDetailData(page, i._id) as SchemaFenhongbaoRaw
                         let bSuccess = false
                         if (v) {
                             const contacts = {} as Record<string, string>
@@ -393,16 +406,14 @@ model.open().then(async () => {
                             )
                             bSuccess = true
                             delete v["id"]
-                            if (!d) {
-                                await DFenhongbaoRawDetail.updateOne(
-                                    {_id: i._id},
-                                    {$set: v},
-                                    {upsert: true}
-                                )
-                            }
+                            await DFenhongbaoRawDetail.updateOne(
+                                {_id: i._id},
+                                {$set: v},
+                                {upsert: true}
+                            )
                         }
                         cnt++
-                        console.log(`#${i._id} | ${cnt}/${endId} | ${bSuccess ? colors.green("成功") : colors.red("失败")} (${success} / ${cnt - success}) | ${+new Date() - time}ms `)
+                        console.log(`${colors.gray(new Date().toLocaleTimeString('en-US', {}).replace(/[^d]/g, '-'))} #${i._id} | ${cnt}/${count} | ${bSuccess ? colors.green("成功") : colors.red("失败")} (${success} / ${cnt - success}) | ${+new Date() - time}ms `)
                         // if (cnt % 10 === 0) {
                         //     console.log(`#${cnt} wait 10s`)
                         //     await wait(30000)
