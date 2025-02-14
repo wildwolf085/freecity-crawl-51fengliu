@@ -413,7 +413,7 @@ model.open().then(async () => {
                             )
                         }
                         cnt++
-                        console.log(`${colors.gray(new Date().toLocaleTimeString('en-US', {}).replace(/[^d]/g, '-'))} #${i._id} | ${cnt}/${count} | ${bSuccess ? colors.green("成功") : colors.red("失败")} (${success} / ${cnt - success}) | ${+new Date() - time}ms `)
+                        console.log(`${colors.gray(new Date().toLocaleTimeString('en-US', {}).replace(/[^\d]/g, '-'))} #${i._id} | ${cnt}/${count} | ${bSuccess ? colors.green("成功") : colors.red("失败")} (${success} / ${cnt - success}) | ${+new Date() - time}ms `)
                         // if (cnt % 10 === 0) {
                         //     console.log(`#${cnt} wait 10s`)
                         //     await wait(30000)
