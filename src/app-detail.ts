@@ -316,7 +316,7 @@ const fetchDetailData = async (page: Page, id: number) => {
 
         while(true) {
             if (repeat > 2) {
-                console.log(`\t\t#${id} 重试${repeat}次失败`)
+                // console.log(`\t\t#${id} 重试${repeat}次失败`)
                 return null
             }
             const resp1 = await page.evaluate(() => {
@@ -328,10 +328,10 @@ const fetchDetailData = async (page: Page, id: number) => {
                 });
                 return resp1.data
             } else if (resp1?.data===null){
-                console.log(`\t\t#${id} 没有数据`)
+                // console.log(`\t\t#${id} 没有数据`)
                 return null
             }
-            console.log(`\t\t#${id} wait 1s`)
+            // console.log(`\t\t#${id} wait 1s`)
             await wait(1000)
             repeat++
         }
@@ -347,7 +347,7 @@ model.open().then(async () => {
         bar1.tick(1, ` | ${true ? colors.green("成功") : colors.red("失败")} (${0} / ${0})`)
 
 
-        console.log("started")
+        // console.log("started")
         const page = await initPuppeteer();
         await openUrl(page, domain)
         await wait(2000)
@@ -370,7 +370,7 @@ model.open().then(async () => {
         const batch = 1000
         const count = endId - startId + 1
 
-        console.log(`startId: ${startId} endId: ${endId} total: ${count}`)
+        // console.log(`startId: ${startId} endId: ${endId} total: ${count}`)
         let success = 0
         const bar = new ConsoleProgress(count, `详情 共 ${count}`);
 
