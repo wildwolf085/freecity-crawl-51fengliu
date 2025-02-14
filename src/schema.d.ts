@@ -26,6 +26,7 @@ declare interface SchemaFenhongbao {
     title: string // 粉红豹标题
     contents: string // 粉红豹描述
     cityCode: number // 城市ID
+    contactCnt: number // 联系方式数量
     contacts: null | Record<string, string> // 联系方式
     meta: Partial<FenhongbaoMeta>
     replies: FenhongbaoReply[]

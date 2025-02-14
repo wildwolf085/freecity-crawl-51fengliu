@@ -10,7 +10,7 @@ import cities from "./cities.json";
 import config from './config.json'
 const md5 = (plain: string) => crypto.createHash('md5').update(plain).digest("hex")
 const wait = (mill: number) => (new Promise(resolve => setTimeout(resolve, Math.max(mill, 1000))))
-
+import colors from 'colors'
 // const username = ""
 // const password = ""
 
@@ -359,6 +359,12 @@ model.open().then(async () => {
             console.log(`processing ${_id} to ${_id + batch}: ${rows.length} records`)
             for (const i of rows) {
                 if (i.contacts) {
+                    if (i.contactCnt===undefined) {
+                        await DFenhongbao.updateOne(
+                            {_id: i._id}, 
+                            {$set: { contactCnt: Object.keys(i.contacts).length }}
+                        )
+                    }
                     cnt++
                     success++
                     continue
@@ -367,9 +373,10 @@ model.open().then(async () => {
                 while(true) {
                     try {
                         const time = +new Date()
-                        // await wait(1000)
+                        await wait(10000)
                         const d = await DFenhongbaoRawDetail.findOne({_id: i._id})
                         let v = d || await fetchDetailData(page, i._id) as SchemaFenhongbaoRaw
+                        let bSuccess = false
                         if (v) {
                             const contacts = {} as Record<string, string>
                             for (let field of contactFields) {
@@ -377,14 +384,14 @@ model.open().then(async () => {
                                     contacts[field] = v[field]
                                 }
                             }
-                            if (Object.keys(contacts).length > 0) {
-                                success++
-                                const timestamp = Math.round(Date.now() / 1000)
-                                await DFenhongbao.updateOne(
-                                    {_id: i._id}, 
-                                    {$set: { updated: timestamp, contacts, actived: true }}
-                                )
-                            }
+                            const contactCnt = Object.keys(contacts).length
+                            success++
+                            const timestamp = Math.round(Date.now() / 1000)
+                            await DFenhongbao.updateOne(
+                                {_id: i._id}, 
+                                {$set: { updated: timestamp, contacts, contactCnt, actived: true }}
+                            )
+                            bSuccess = true
                             delete v["id"]
                             if (!d) {
                                 await DFenhongbaoRawDetail.updateOne(
@@ -395,11 +402,11 @@ model.open().then(async () => {
                             }
                         }
                         cnt++
-                        console.log(`#${i._id} | ${cnt}/${endId} | 成功 ${success} 失败 ${cnt - success} | ${+new Date() - time}ms`)
-                        if (cnt % 10 === 0) {
-                            console.log(`#${cnt} wait 10s`)
-                            await wait(10000)
-                        }
+                        console.log(`#${i._id} | ${cnt}/${endId} | ${bSuccess ? colors.green("成功") : colors.red("失败")} (${success} / ${cnt - success}) | ${+new Date() - time}ms `)
+                        // if (cnt % 10 === 0) {
+                        //     console.log(`#${cnt} wait 10s`)
+                        //     await wait(30000)
+                        // }
                         break
                     } catch (error) {
                         console.log(`#${i._id} 报错 重试`)
