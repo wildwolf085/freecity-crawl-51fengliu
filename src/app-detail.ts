@@ -351,10 +351,16 @@ model.open().then(async () => {
         const batch = 1000
         let success = 0
         for (let _id = startId; _id <= endId; _id+=batch) {
-            const rows = await DFenhongbao.find({_id: {$gte: _id, $lt: _id + batch}, $or: [{contracts: null}, {updated: {$lt: Math.round(Date.now() / 1000) - 3 * 30 * 86400}}]}).toArray()
+            const rows = await DFenhongbao.find({_id: {$gte: _id, $lt: _id + batch}}).toArray()
             
             console.log(`processing ${_id} to ${_id + batch}: ${rows.length} records`)
             for (const i of rows) {
+                if (i.contacts) {
+                    cnt++
+                    success++
+                    continue
+                }
+                // , $or: [{contracts: null}, {updated: {$lt: Math.round(Date.now() / 1000) - 3 * 30 * 86400}}]
                 while(true) {
                     try {
                         const time = +new Date()
