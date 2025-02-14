@@ -47,7 +47,7 @@ class ConsoleProgress {
         const progress = (this.processed / (this.total || 1) * 100).toFixed(1);
         const progressBar = this.getProgressBar();
         const elapsedTime = (Date.now() - this.startTime)
-        const text = `${this.label}: ${progressBar} ${progress}% | ${this.processed} / ${this.total}${additionalInfo} | ${elapsedTime / 1000}s avg ${Math.round(elapsedTime / (this.processed || 1)) / 1000}s/条`
+        const text = `${this.label}: ${progressBar} ${progress}% | ${this.processed} / ${this.total}${additionalInfo} | ${elapsedTime / 1000}s | ${Math.round(elapsedTime / (this.processed || 1)) / 1000}s/条`
         process.stdout.removeAllListeners()
         process.stdout.cursorTo(0);
         process.stdout.clearLine(1);

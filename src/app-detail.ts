@@ -349,7 +349,7 @@ model.open().then(async () => {
         const startId = await getFirstIdFromCollection(DFenhongbao)
         const endId = await getLastIdFromCollection(DFenhongbao)
         const batch = 1000
-        
+        let success = 0
         for (let _id = startId; _id <= endId; _id+=batch) {
             const rows = await DFenhongbao.find({_id: {$gte: _id, $lt: _id + batch}, $or: [{contracts: null}, {updated: {$lt: Math.round(Date.now() / 1000) - 3 * 30 * 86400}}]}).toArray()
             
@@ -358,6 +358,7 @@ model.open().then(async () => {
                 while(true) {
                     try {
                         const time = +new Date()
+                        await wait(3000)
                         const d = await DFenhongbaoRawDetail.findOne({_id: i._id})
                         let v = d || await fetchDetailData(page, i._id) as SchemaFenhongbaoRaw
                         if (v) {
@@ -368,6 +369,7 @@ model.open().then(async () => {
                                 }
                             }
                             if (Object.keys(contacts).length > 0) {
+                                success++
                                 const timestamp = Math.round(Date.now() / 1000)
                                 await DFenhongbao.updateOne(
                                     {_id: i._id}, 
@@ -383,11 +385,9 @@ model.open().then(async () => {
                                     {upsert: true}
                                 )
                             }
-                            
                         }
-                        
                         cnt++
-                        console.log(`#${i._id} total ${cnt} ${+new Date() - time}ms`)
+                        console.log(`#${i._id} | ${cnt}/${endId} | 成功 ${success} 失败 ${cnt - success} | ${+new Date() - time}ms`)
                         if (cnt % 10 === 0) {
                             console.log(`#${cnt} wait 10s`)
                             await wait(10000)

@@ -3,11 +3,11 @@ import { Browser, Page } from "puppeteer";
 import puppeteer from "puppeteer-extra";
 import path from 'path';
 import axios from 'axios';
-import * as cheerio from 'cheerio';
+// import * as cheerio from 'cheerio';
 import crypto from 'crypto';
 import model, { DFenhongbao, DFenhongbaoRaw } from "./model";
 import cities from "./cities.json";
-import { AnyBulkWriteOperation } from "mongodb";
+// import { AnyBulkWriteOperation } from "mongodb";
 import { existsFileInGridFS, uploadToGridFS } from "./gridfs";
 import { getFirstIdFromCollection, getLastIdFromCollection } from "./model";
 import ConsoleProgress from './console-progress'
