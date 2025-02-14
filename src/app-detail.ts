@@ -362,7 +362,7 @@ model.open().then(async () => {
         } else {
             startId = 1
         }
-        
+        startId = 469
 
         
         const endId = await getLastIdFromCollection(DFenhongbao)
@@ -378,7 +378,7 @@ model.open().then(async () => {
             
             const rows = await DFenhongbao.find({_id: {$gte: _id, $lt: _id + batch}}).toArray()
             
-            console.log(`processing ${_id} to ${_id + batch}: ${rows.length} records`)
+            // console.log(`processing ${_id} to ${_id + batch}: ${rows.length} records`)
             for (const i of rows) {
                 if (i.contacts) {
                     if (i.contactCnt===undefined) {
@@ -428,7 +428,7 @@ model.open().then(async () => {
                     //     console.log(`#${cnt} wait 10s`)
                     //     await wait(30000)
                     // }
-                    break
+                    // break
                 } catch (error) {
                     console.log(`#${i._id} 报错 重试`)
                     await wait(10000)
