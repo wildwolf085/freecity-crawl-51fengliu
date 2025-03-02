@@ -1,15 +1,27 @@
 declare interface FenhongbaoMeta {
     address: string // 地址
-    resource: string // 资源
-    age: string // 年龄
-    quality: string // 质量
-    appearance: string // 外观
-    project: string // 项目
-    price: string // 价格
-    business_time: string // 营业时间
-    environment: string // 环境
+    serveLv: string // 服务等级
+    serveList: string // 服务列表
+    businessTime: string // 营业时间
+    consumeLv: string // 消费等级
+    consumeAllNight: string // 消费通宵
+    girlBeauty: string // 女孩颜值
+    girlAge: string // 女孩年龄
+    girlNum: string // 女孩数量
+    score: string // 评分
+    source: string // 来源
     security: string // 安全
-    comprehensive: string // 综合
+    environment: string // 环境
+}
+
+declare interface FenhongbaoContact {
+    qq: string // QQ
+    email: string // 邮箱
+    wechat: string // 微信
+    phone: string // 电话
+    telegram: string // Telegram
+    yunxin: string // 与你号
+    other: string // 其他
 }
 
 declare interface FenhongbaoReply {
@@ -21,14 +33,15 @@ declare interface FenhongbaoReply {
 }
 
 declare interface SchemaFenhongbao {
-    _id: number // seq ID
-    orgId: number // 51fengliu ID
+    orgId: number // 51风流 ID
     title: string // 粉红豹标题
     contents: string // 粉红豹描述
+    hash: string // 粉红豹hash
     cityCode: number // 城市ID
+    district: string // 区县
     contactCnt: number // 联系方式数量
-    contacts: null | Record<string, string> // 联系方式
-    meta: Partial<FenhongbaoMeta>
+    contacts: Partial<FenhongbaoContact> | null // 联系方式
+    meta: Partial<FenhongbaoMeta> | null
     replies: FenhongbaoReply[]
     pinned: boolean // 是否置顶
     replyCnt: number
@@ -42,57 +55,4 @@ declare interface SchemaFenhongbao {
     deleted: number
     updated: number
     created: number
-}
-
-declare interface FenhongbaoRaw {
-    // id: number
-    userId: number
-    status: number
-    type: number
-    title: string
-    isRecommend: boolean
-    isMerchant: boolean
-    isExpired: boolean
-    source: number
-    score: number
-    viewCount: number
-    cityCode: number
-    girlNum: number
-    girlAge: string
-    girlBeauty: string
-    environment: string
-    consumeLv: string
-    consumeAllNight: string
-    serveList: string
-    serveLv: string
-    desc: string
-    qq: string
-    wechat: string
-    telegram: string
-    yuni: string
-    phone: string
-    address: string
-    picture: string
-    coverPicture: string
-    anonymous: boolean
-    publishedAt: number
-    createdAt: number
-    isFavorite: boolean
-    vipProfileStatus: number
-    publisher: string
-    userName: string
-    userReputation: string
-    userStatus: string
-    style: string
-    vipView: string
-    userView: string
-    guestView: string
-    cover: string
-    imgs: string[]
-    imgCnt: number
-    crawled: number
-}
-
-declare interface SchemaFenhongbaoRaw extends FenhongbaoRaw {
-    _id: number
 }

@@ -22,30 +22,14 @@ let showImage = false
 
 let browser: Browser
 
-// const MetaKeys = {
-//     "地址": "address",
-//     "信息来源": "resource",
-//     "年龄": "age",
-//     "服务质量": "quality",
-//     "外形": "appearance",
-//     "颜值": "appearance",
-//     "服务内容": "project",
-//     "价格": "price",
-//     "营业时间": "business_time",
-//     "环境": "environment",
-//     "服务": "service",
-//     "安全": "security",
-//     "综合评价": "comprehensive"
-// }
-
-// const ContactKeys = {
-//     "地址": "address",
-//     "QQ": "qq",
-//     "微信": "wechat",
-//     "电话": "phone",
-//     "Telegram ": "telegram",
-//     "与你号": "yuni",
-// }
+const ContactKeys = {
+    "地址": "address",
+    "QQ": "qq",
+    "微信": "wechat",
+    "电话": "phone",
+    "Telegram ": "telegram",
+    "与你号": "yuni",
+}
 
 const contactFields = [
     "address",

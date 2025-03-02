@@ -3,14 +3,11 @@ import { Browser, Page } from "puppeteer";
 import puppeteer from "puppeteer-extra";
 import path from 'path';
 import axios from 'axios';
-// import * as cheerio from 'cheerio';
+import * as cheerio from 'cheerio';
 import crypto from 'crypto';
-import model, { DFenhongbao, DFenhongbaoRaw } from "./model";
-import cities from "./cities.json";
-// import { AnyBulkWriteOperation } from "mongodb";
-import { existsFileInGridFS, uploadToGridFS } from "./gridfs";
-import { getFirstIdFromCollection, getLastIdFromCollection } from "./model";
-import ConsoleProgress from './console-progress'
+import config from "./config.json"
+
+let _start = 18
 
 const md5 = (plain: string) => crypto.createHash('md5').update(plain).digest("hex")
 const wait = (mill: number) => (new Promise(resolve => setTimeout(resolve, Math.max(mill, 1000))))
@@ -19,43 +16,7 @@ const StealthPlugin = require('puppeteer-extra-plugin-stealth')
 puppeteer.use(StealthPlugin())
 
 let showImage = false
-// let failedImage = 0
-// let successImage = 0
 let browser: Browser
-
-// const MetaKeys = {
-//     "地址": "address",
-//     "信息来源": "resource",
-//     "年龄": "age",
-//     "服务质量": "quality",
-//     "外形": "appearance",
-//     "颜值": "appearance",
-//     "服务内容": "project",
-//     "价格": "price",
-//     "过夜价格": "priceAllNight",
-//     "营业时间": "business_time",
-//     "环境": "environment",
-//     "服务": "service",
-//     "安全": "security",
-//     "评价": "serveLv",
-//     "综合评价": "comprehensive",
-//     "女孩数量": "girlNum",
-//     "评分": "score"
-// }
-
-// const ContactKeys = {
-//     "QQ": "qq",
-//     "微信": "wechat",
-//     "电话": "phone",
-//     "Telegram ": "telegram",
-//     "与你号": "yuni"
-// }
-
-/*
-
-https://mao618.xyz
-
-*/
 
 const metaFields = [
     "serveLv",
@@ -80,10 +41,10 @@ const contactFields = [
 ]
 
 const isValidValue = (value: string) => !["无", "示例信息1", '示例信息2'].includes(value)
-let fenhongbaoLastId = 0
+
+const rootDir = path.resolve(__dirname, '../')
 
 const domain = "https://mao527.xyz"
-// const image_origin = "https://s1.img115.xyz/info/picture/"
 const initPuppeteer = async () => {
     const profileDir = `${__dirname}/../puppeteer`
 
@@ -130,10 +91,7 @@ async function downloadImage(url: string, dir: string): Promise<string | null> {
         const ext = path.extname(url)
         const name = md5(url) + ext
         const imageUri = `${dir}/${name}`
-        // if (fs.existsSync(imageUri)) {
-        //     return name
-        // }
-        if (await existsFileInGridFS(name)) {
+        if (fs.existsSync(imageUri)) {
             return name
         }
         const res = await axios.get(url, { 
@@ -147,24 +105,8 @@ async function downloadImage(url: string, dir: string): Promise<string | null> {
             }
          });
         fs.writeFileSync(imageUri, res.data);
-        if (fs.existsSync(imageUri)) {
-            try {
-                const stat = fs.statSync(imageUri)
-                if (stat.size === 32533) {
-                    return null
-                } else {
-                    await uploadToGridFS(imageUri)
-                }
-            } catch (error) {
-                console.log(error)
-            } finally {
-                fs.unlinkSync(imageUri)
-            }
-        }
-        
         return name;
     } catch (error) {
-        // console.error(`Error downloading ${url}: ${error}`);
         return null;
     }
 }
@@ -181,19 +123,68 @@ const openUrl = async (page: Page, url: string) => {
     }
 }
 
-declare namespace NodeJS {
-    interface HTMLElement {
-        
-        __data: any
+const _login = async (page: Page) => {
+    try {
+        for (let account of config.accounts) {
+            await wait(2000);
+            const url = page.url()
+            await page.focus('input[formcontrolname="name"]')
+
+            const username = await page.evaluate(() => {
+                const input = document.querySelector('input[formcontrolname="name"]') as HTMLInputElement;
+                return input.value
+            });
+            for (let i = 0; i < username.length; i++) {
+                await page.keyboard.press('Backspace');
+            }
+            await page.keyboard.type(account.username)
+            await page.focus('input[formcontrolname="password"]')
+            const password = await page.evaluate(() => {
+                const input = document.querySelector('input[formcontrolname="password"]') as HTMLInputElement;
+                return input.value
+            });
+            for (let i = 0; i < password.length; i++) {
+                await page.keyboard.press('Backspace');
+            }
+            await wait(100);
+            await page.keyboard.type(account.password)
+            
+            // Submit login form
+            await page.evaluate(() => {
+                const submitBtn = document.querySelector('form button') as HTMLElement;
+                if (submitBtn) submitBtn.click();
+            });
+            await wait(5000);
+            const result = url!==page.url()
+            if (result) 
+                return true
+        }
+        return false
+    } catch (error) {
+        console.log(error)
     }
+    return false
+}
+const shouldLogin = async (page: Page, html: string) => {
+    const $ = cheerio.load(html);
+    const loginText = $('button:contains("登录")');
+    if (loginText.length > 0) {
+        console.log("Need to login, attempting login...");
+        await page.evaluate(() => {
+            const loginBtn = document.querySelector('button.ant-btn-background-ghost') as HTMLElement;
+            if (loginBtn) loginBtn.click();
+        });
+        return await _login(page)
+    }
+    return false;
 }
 
-
-const fetchPageData = async (page: Page, city: string, pageNo: number) => {
+const fetchListData = async (page: Page, pageNo: number) => {
     try {
-        await page.evaluate((domain: string, cityCode: string, pageNo: number) => {
+        await page.evaluate((domain: string, pageNo: number) => {
             try {
-                const url = `${domain}/api/web/info/page.json?sort=publish&cityCode=${cityCode}${pageNo > 1 ? `&page=${pageNo}` : ""}`
+                // // https://mao527.xyz/api/web/info/page.json?sort=publish&page=1
+                const url = `${domain}/api/web/info/page.json?sort=publish${pageNo > 1 ? `&page=${pageNo}` : ""}`
                 console.log(url)
                 fetch(url, {
                     "headers": { 
@@ -210,12 +201,12 @@ const fetchPageData = async (page: Page, city: string, pageNo: number) => {
             } catch (error) {
                 console.log(error)
             }
-        }, domain, city, pageNo);
+        }, domain, pageNo);
         await wait(1500)
         let repeat = 0
         while(true) {
             if (repeat > 5) {
-                console.log(`\t\t#${city} ${pageNo} 重试5次失败 重新登录`)
+                console.log(`\t\t#${pageNo} 重试5次失败 重新登录`)
                 return null
             }
             const resp1 = await page.evaluate(() => {
@@ -228,7 +219,6 @@ const fetchPageData = async (page: Page, city: string, pageNo: number) => {
                 const {pages, records, total} = resp1.data
                 return {pages, records, total}
             }
-            // console.log(`\t\t#${city} ${pageNo} wait 1s`)
             await wait(1000)
             repeat++
         }
@@ -237,314 +227,151 @@ const fetchPageData = async (page: Page, city: string, pageNo: number) => {
 
     }
 }
-
-// const processPageData2 = async (records: any[]) => {
-//     const data = [] as AnyBulkWriteOperation<SchemaFenhongbaoRaw>[]
-//     for (const i of records) {
-//         i.cover = ""
-//         i.imgs = []
-//         if (i.coverPicture) {
-//             const image = await downloadImage(`https://s1.img115.xyz/info/picture/${i.coverPicture}`, `./data/`)
-//             if (image) {
-//                 i.cover = image
-//             }
-//         }
-        
-//         if (!!i.picture) {
-            
-//             const x = i.picture.split(',')
-//             for (const img of x) {
-//                 const image = await downloadImage(`https://s1.img115.xyz/info/picture/${img}`, `./data/`)
-//                 if (!!image) {
-//                     i.imgs.push(image)
-//                 }
-//             }
-//         }
-//         i.imgCnt = i.imgs.length
-//         const _id = i.id
-//         delete i.id
-//         data.push({
-//             updateOne: {
-//                 filter: {_id},
-//                 update: {$set: i},
-//                 upsert: true
-//             }
-//         })
-//     }
-//     await DFenhongbaoRaw.bulkWrite(data)
-// }
-
-const processPageData = async (label: string, records: Array<FenhongbaoRaw & {id: number}>) => {
-    let _cnt = 0
-    for (const i of records) {
-        let _imgs = !!i.picture ? i.picture.split(',') : []
-        _cnt += (i.coverPicture ? 1 : 0) + _imgs.length
-    }
-    const bar = new ConsoleProgress(_cnt, label);
-    let successImage = 0
-    let failedImage = 0
-    for (const i of records) {
-        let cover = ""
-        let imgs = []
-        let _imgs = !!i.picture ? i.picture.split(',') : []
-
-        if (i.coverPicture) {
-            const image = await downloadImage(`https://s1.img115.xyz/info/picture/${i.coverPicture}`, `./data/`)
-            if (image) {
-                successImage++
-                i.cover = image
-            } else {
-                failedImage++
-            }
-            bar.tick(1, ` (图片 ${successImage} 失败 ${failedImage})`)
-        }
-        
-        for (const img of _imgs) {
-            const image = await downloadImage(`https://s1.img115.xyz/info/picture/${img}`, `./data/`)
-            if (!!image) {
-                imgs.push(image)
-                successImage++
-            } else {
-                failedImage++
-            }
-            bar.tick(1, ` (图片 ${successImage} 失败 ${failedImage})`)
-        }
-        let imgCnt = imgs.length
-        if (i.isExpired) {
-            // console.log(`expired: ${i.id}`)
-            continue
-        }
-        const meta = {} as Record<string, string|number>
-        for (let field of metaFields) {
-            if (field in i && !!i[field] && isValidValue(i[field])) {
-                meta[field] = i[field]
-            }
-        }
-        let contents = isValidValue(i.desc) ? i.desc : ''
-        const d = await DFenhongbao.findOne({orgId: i.id})
-        if (d) {
-            await DFenhongbao.updateOne(
-                {_id: d._id},
-                {$set: {
-                    title: i.title, // 粉红豹标题
-                    contents,
-                    cityCode: i.cityCode, // 城市ID
-                    meta,
-                    imgCnt,
-                    imgs,
-                    cover,
-                    vipOnly: i.vipView==="only vip have",
-                }}
-            )
-        } else {
-            await DFenhongbao.insertOne({
-                _id: ++fenhongbaoLastId, // 粉红豹ID
-                orgId: i.id,
-                title: i.title, // 粉红豹标题
-                contents,
-                cityCode: i.cityCode, // 城市ID
-                contacts: null,
-                meta,
-                replies: [],
-                pinned: i.isRecommend,
-                replyCnt: 0,
-                viewCnt: i.viewCount,
-                anonymous: i.anonymous,
-                imgCnt,
-                imgs,
-                cover,
-                vipOnly: i.vipView==="only vip have",
-                actived: false,
-                updated: 0,
-                deleted: 0,
-                created: Math.round(i.publishedAt / 1000)
-            })
-        }
-    }
-}
-
-
-const convertRawToSchema = async () => {
+const fetchDetailData = async (page: Page, id: number) => {
     try {
-        await DFenhongbao.deleteMany({})
-
-        const startId = await getFirstIdFromCollection(DFenhongbaoRaw)
-        const endId = await getLastIdFromCollection(DFenhongbaoRaw)
-        const batch = 1000
-        const cnt = await DFenhongbaoRaw.countDocuments()
-        fenhongbaoLastId = 0
-        const progress = new ConsoleProgress(cnt, '转换原始数据')
-        for (let _id = startId; _id <= endId; _id+=batch) {
-            const rows = await DFenhongbaoRaw.find({_id: {$gte: _id, $lt: _id + batch}}).toArray()
-            const data = [] as SchemaFenhongbao[]
-            for (const i of rows) {
-                if (!isValidValue(i.title)) continue
-                const meta = {} as Record<string, string|number>
-                for (let field of metaFields) {
-                    if (field in i && !!i[field] && isValidValue(i[field])) {
-                        meta[field] = i[field]
-                    }
-                }
-                
-                const _contacts = {} as Record<string, string>
-                for (let field of contactFields) {
-                    if (field in i && !!i[field] && isValidValue(i[field])) {
-                        _contacts[field] = i[field]
-                    }
-                }
-                if (i.isExpired) {
-                    console.log(`expired: #${i._id}`)
-                    continue
-                }
-                const contacts = Object.keys(_contacts).length > 0 ? _contacts : null
-                let contents = isValidValue(i.desc) ? i.desc : ''
-
-                data.push({
-                    _id: ++fenhongbaoLastId, // 粉红豹ID
-                    orgId: i._id,
-                    title: i.title, // 粉红豹标题
-                    contents, // 粉红豹描述
-                    cityCode: i.cityCode, // 城市ID
-                    contacts,
-                    meta,
-                    replies: [],
-                    pinned: i.isRecommend,
-                    replyCnt: 0,
-                    viewCnt: i.viewCount,
-                    anonymous: i.anonymous,
-                    imgCnt: i.imgCnt,
-                    imgs: i.imgs,
-                    cover: i.cover,
-                    vipOnly: i.vipView==="only vip have",
-                    actived: contacts!==null,
-                    updated: 0,
-                    deleted: 0,
-                    created: Math.round(i.publishedAt / 1000)
-                })
-                progress.tick()
+        await page.evaluate((domain: string, id: number) => {
+            try {
+                fetch(`${domain}/api/web/info/detail.json?infoId=${id}`, {
+                    "headers": { "accept": "application/json, text/plain, */*" },
+                    "body": null,
+                    "method": "GET"
+                }).then(res => {
+                    document.body.__data = res.json()
+                })    
+            } catch (error) {
+                console.log(error)
             }
-            if (data.length > 0) 
-                await DFenhongbao.insertMany(data)
+        }, domain, id);
+        await wait(1000)
+        let repeat = 0
+
+        while(true) {
+            if (repeat > 2) {
+                return null
+            }
+            const resp1 = await page.evaluate(() => {
+                return document.body.__data
+            });
+            if (resp1?.data) {
+                await page.evaluate(() => {
+                    delete document.body.__data
+                });
+                return resp1.data
+            } else if (resp1?.data===null){
+                return null
+            }
+            await wait(1000)
+            repeat++
         }
     } catch (error) {
         console.log(error)
     }
-    
 }
 
-const state_filename = `${__dirname}/cities_state.json`
-
-const readState = () => {
-    if (fs.existsSync(state_filename)) {
-        return JSON.parse(fs.readFileSync(state_filename, 'utf8'))
+const processImage = async (coverPicture: string, picture: string) => {
+    let cover = ""
+    let imgs = [] as string[]
+    if (coverPicture) {
+        const image = await downloadImage(`https://s1.img115.xyz/info/picture/${coverPicture}`, `./data/`)
+        if (image) {
+            cover = image
+        }
     }
-    return {}
-}
-const writeState = (state: any) => {
-    fs.writeFileSync(state_filename, JSON.stringify(state, null, '\t'))
+    
+    if (!!picture) {
+        const x = picture.split(',')
+        for (const img of x) {
+            const image = await downloadImage(`https://s1.img115.xyz/info/picture/${img}`, `./data/`)
+            if (!!image) {
+                imgs.push(image)
+            }
+        }
+    }
+    return [cover, imgs]
 }
 
-
-model.open().then(async () => {
+const main = async () => {
     try {
-        // await DFenhongbao.deleteMany({})
-        // await convertRawToSchema()
-        // return;
-        fenhongbaoLastId = await getLastIdFromCollection(DFenhongbao)
         console.log("started")
         const page = await initPuppeteer();
-        // showImage = true
-        // await page.setUserAgent('Mozilla/5.0 (Windows NT 5.1; rv:5.0) Gecko/20100101 Firefox/5.0')
-
-        await openUrl(page, domain)
+        await openUrl(page, `${domain}/list`)
         await wait(5000)
-        // showImage = false
-
-        const state = await readState() as {[key: string]: {page: number, pages: number, total: number}}
-        // const html = await page.content()
-        // await shouldLogin(page, html)
+        const html = await page.content()
+        await shouldLogin(page, html)
         let cnt = 0
-        for (const province in cities) {
+        
+        
 
-            console.log(`${province} (${Object.keys(cities[province]).length})个城市`)
-            for (const city in cities[province]) {
-
-                if (state[city] && state[city].page >= state[city].pages) continue
-                const cityName = cities[province][city]
-                let processedCnt = 0
-                while(true) {
-                    try {
-                        const time = +new Date()
-                        const resp = await fetchPageData(page, city, 1)
-                        if (!resp) {
-                            console.log(`\t\t#${city} ${province} ${cityName} 重试5次失败 重新登录`)
-                            await wait(10000)
-                            continue
-                        }
-                        const {pages, records, total} = resp
-                        // console.log(`#${city} ${province} ${cityName} ${pages}页 ${processedCnt + records.length}/${total}条记录 ${+new Date() - time}ms`)
-                        await processPageData(`#${city} ${province} ${cityName} 共${pages}页 ${processedCnt + records.length}/${total} 读取 ${((+new Date() - time) / 1000).toFixed(2)}s`, records)
-                        if (state[city]) {
-                            state[city].pages = pages
-                            state[city].total = total
-                            processedCnt = (state[city].page - 1) * 30
-                        } else {
-                            state[city] = {page: 1, pages, total}
-
-                        }
-                        processedCnt += records.length
-                        cnt++
-                        break
-                    } catch (error) {
-                        console.log(`#${city} ${province} ${cityName} 报错 重试`)
-                        await wait(10000)
+        for (let i = 0; i < 30; i++) {
+            const resp = await fetchListData(page, i)
+            if (!resp) {
+                console.log(`\t\t#${i} 重试5次失败 重新登录`)
+                await wait(10000)
+                continue
+            }
+            const {pages, records, total} = resp
+            let k = 0
+            for (let record of records) {
+                await wait(5000)
+                const {id} = record
+                console.log(`${new Date().toLocaleTimeString("zh-CN", {hour12: false})} 第${i}页 ${k++}/${records.length} #${id}`)
+                const exist = await existData(id)
+                if (exist) {
+                    console.log(`\t\t#${id} 已存在`)
+                    continue
+                }
+                const d = await fetchDetailData(page, id)
+                if (!d) {
+                    console.log(`\t\t#${id} 重试5次失败 重新登录`)
+                    await wait(10000)
+                    continue
+                }
+                const [cover, imgs] = await processImage(d.coverPicture, d.picture)
+                const contacts = {} as Record<string, string>
+                for (let field of contactFields) {
+                    if (field in d && !!d[field] && isValidValue(d[field])) {
+                        contacts[field] = d[field]
                     }
                 }
-                writeState(state)
-                // if (state[city]) {
-
-                for (let i=state[city].page + 1; i<=state[city].pages; i++) {
-                    // console.log(`${province} ${cities[province][city]} 第${i}/${state[city].pages}页`)
-                    // for (let k = 0; k < 10; k++) {
-                    while(true) {
-                        try {
-                            await wait(10000)
-                            const time = +new Date()
-                            const resp = await fetchPageData(page, city, i)
-                            if (!resp) {
-                                console.log(`\t\t#${city} ${province} ${cities[province][city]} 重试5次失败 重新登录`)
-                                await wait(10000)
-                                continue
-                            }
-                            const {pages, records, total} = resp
-
-                            // if (records.length > 0) {
-                            //     await processPageData(records)
-                            // }
-                            
-                            const isAbnormal = records.length !== 30 && i < pages
-                            await processPageData(`#${city} ${province} ${cityName} 第${i}/${pages}页${isAbnormal ? ' 异常' : ''} ${processedCnt + records.length}/${total} 读取 ${((+new Date() - time) / 1000).toFixed(2)}s`, records)
-
-                            if (isAbnormal) {
-                                await wait(10000)
-                                continue
-                            }
-                            state[city].pages = records.length !==30 ? i : pages
-                            state[city].total = total
-                            state[city].page = i
-                            processedCnt += records.length
-                            writeState(state)
-                            // console.log(`#${city} ${province} ${cities[province][city]} 第${i}/${pages}页 ${records.length}条记录 共${total}条记录 ${+new Date() - time}ms`)
-                            cnt++
-                            if (cnt % 10===0) {
-                                // console.log(`#${cnt} wait 10s`)
-                                await wait(10000)
-                            }
-                            break
-                        } catch (error) {
-                            console.log(error)
-                        }
+                const contactCnt = Object.keys(contacts).length
+                const meta = {} as Record<string, string>
+                for (let field of metaFields) {
+                    if (field in d && !!d[field] && isValidValue(d[field])) {
+                        meta[field] = d[field]
                     }
+                }
+                const data = {
+                    orgId: d.id, // 51风流 ID
+                    title: d.title, // 粉红豹标题
+                    contents: d.desc, // 粉红豹描述
+                    hash: md5([d.title, d.desc].join('')),
+                    cityCode: d.cityCode, // 城市ID
+                    district: '', // 区县
+                    contactCnt,
+                    contacts,
+                    meta,
+                    replies: [],
+                    pinned: false, // 是否置顶
+                    replyCnt: 0,
+                    viewCnt: d.viewCount,
+                    anonymous: d.anonymous,
+                    imgCnt: imgs.length,
+                    imgs,
+                    cover,
+                    vipOnly: false,
+                    actived: contactCnt > 0,
+                    deleted: 0,
+                    updated: 0,
+                    created: Math.round(d.createdAt / 1000)
+                } as SchemaFenhongbao
+                const msg = await uploadData(data, cover as string, imgs as string[])
+                console.log(`\ttotal ${msg ? ++cnt : cnt} ${msg || '失败'}`)
+                if (cnt && cnt % 100===0) {
+                    console.log(`\t\tTotal ${cnt} 休息300秒`)
+                    await wait(300000)
+                    // await closeBrowser()
+                    // console.log(`done ${cnt}`)
+                    // process.exit(0)
                 }
             }
         }
@@ -553,4 +380,29 @@ model.open().then(async () => {
         console.log(err)
     }
     console.log("done")
-})
+}
+
+const existData = async (orgId: number) => {
+    const res = await axios.post(`${config.api}/api/fenhongbao/exists`, {orgId})
+    return res.data.result
+}
+
+const uploadData = async (data: SchemaFenhongbao, cover: string, imgs: string[]) => {
+    // axios post with file uploads
+    const formData = new FormData()
+    formData.append('data', JSON.stringify(data))
+    if (cover) {
+        const coverFile = fs.readFileSync(`${rootDir}/data/${cover}`)
+        const coverBlob = new File([coverFile], cover)
+        formData.append('cover', coverBlob)
+    }
+    for (let img of imgs) {
+        const imgFile = fs.readFileSync(`${rootDir}/data/${img}`)
+        const imgBlob = new File([imgFile], img)
+        formData.append('imgs', imgBlob)
+    }
+    const res = await axios.post(`${config.api}/api/fenhongbao/add`, formData, {headers: {"Content-Type": "multipart/form-data"}})
+    return res.data.message || ''
+}
+
+main()
