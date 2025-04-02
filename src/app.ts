@@ -315,7 +315,7 @@ const main = async () => {
             
             
 
-            for (let i = 0; i < 5; i++) {
+            for (let i = 0; i < 15; i++) {
                 const resp = await fetchListData(page, i)
                 if (!resp) {
                     console.log(`\t\t#${i} failed, try logging in again.`)
@@ -393,9 +393,9 @@ const main = async () => {
             console.log(err)
         }
         const spent = Math.round((Date.now() - timestamp) / 1000)
-        const delay = 6 * 3600 - spent
+        const delay = 12 * 3600 - spent
         console.log(`wait for ${delay}s`)
-        await wait(delay)
+        await wait(delay * 1000)
     }
 }
 
