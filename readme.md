@@ -11,4 +11,5 @@ for console progress, you can use the following vscode configuration:
     ...
 }
 ```
-
+cd C:\fenhongbao\freecity-crawl-51fengliu
+node -r ts-node/register/transpile-only src/app.ts

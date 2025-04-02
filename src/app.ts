@@ -46,14 +46,25 @@ const rootDir = path.resolve(__dirname, '../')
 
 const domain = "https://mao527.xyz"
 const initPuppeteer = async () => {
-    const profileDir = `${__dirname}/../puppeteer`
+    const profileDir = `${__dirname}/../user-1`
 
     browser = await puppeteer.launch({
         protocolTimeout: 360000000,
-        headless: false, 
+        // headless: false, 
+        headless: 'shell',
         args: [
-            '--window-size=1920,1080',
-            '--disable-features=site-per-process'
+            `--window-position=100,100`,
+            `--window-size=1000,600`,
+            '--disable-features=site-per-process',
+            "--fast-start", 
+            "--disable-extensions", 
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-accelerated-2d-canvas",
+            "--no-first-run",
+            "--no-zygote",
+            "--disable-gpu",
         ],
         userDataDir: profileDir,
     });
@@ -305,7 +316,7 @@ const main = async () => {
         for (let i = 0; i < 30; i++) {
             const resp = await fetchListData(page, i)
             if (!resp) {
-                console.log(`\t\t#${i} 重试5次失败 重新登录`)
+                console.log(`\t\t#${i} failed, try logging in again.`)
                 await wait(10000)
                 continue
             }
@@ -317,12 +328,12 @@ const main = async () => {
                 console.log(`${new Date().toLocaleTimeString("zh-CN", {hour12: false})} 第${i}页 ${k++}/${records.length} #${id}`)
                 const exist = await existData(id)
                 if (exist) {
-                    console.log(`\t\t#${id} 已存在`)
+                    console.log(`\t\t#${id} exists`)
                     continue
                 }
                 const d = await fetchDetailData(page, id)
                 if (!d) {
-                    console.log(`\t\t#${id} 重试5次失败 重新登录`)
+                    console.log(`\t\t#${id} failed, try logging in again`)
                     await wait(10000)
                     continue
                 }
@@ -365,9 +376,9 @@ const main = async () => {
                     created: Math.round(d.createdAt / 1000)
                 } as SchemaFenhongbao
                 const msg = await uploadData(data, cover as string, imgs as string[])
-                console.log(`\ttotal ${msg ? ++cnt : cnt} ${msg || '失败'}`)
+                console.log(`\ttotal ${msg ? ++cnt : cnt} ${msg || 'faile'}`)
                 if (cnt && cnt % 100===0) {
-                    console.log(`\t\tTotal ${cnt} 休息300秒`)
+                    console.log(`\t\tTotal ${cnt} wait for 300s`)
                     await wait(300000)
                     // await closeBrowser()
                     // console.log(`done ${cnt}`)
