@@ -302,95 +302,101 @@ const processImage = async (coverPicture: string, picture: string) => {
 }
 
 const main = async () => {
-    try {
-        console.log("started")
-        const page = await initPuppeteer();
-        await openUrl(page, `${domain}/list`)
-        await wait(5000)
-        const html = await page.content()
-        await shouldLogin(page, html)
-        let cnt = 0
-        
-        
+    while (true) {
+        const timestamp = Date.now()
+        try {
+            console.log("started")
+            const page = await initPuppeteer();
+            await openUrl(page, `${domain}/list`)
+            await wait(5000)
+            const html = await page.content()
+            await shouldLogin(page, html)
+            let cnt = 0
+            
+            
 
-        for (let i = 0; i < 30; i++) {
-            const resp = await fetchListData(page, i)
-            if (!resp) {
-                console.log(`\t\t#${i} failed, try logging in again.`)
-                await wait(10000)
-                continue
-            }
-            const {pages, records, total} = resp
-            let k = 0
-            for (let record of records) {
-                await wait(5000)
-                const {id} = record
-                console.log(`${new Date().toLocaleTimeString("zh-CN", {hour12: false})} 第${i}页 ${k++}/${records.length} #${id}`)
-                const exist = await existData(id)
-                if (exist) {
-                    console.log(`\t\t#${id} exists`)
-                    continue
-                }
-                const d = await fetchDetailData(page, id)
-                if (!d) {
-                    console.log(`\t\t#${id} failed, try logging in again`)
+            for (let i = 0; i < 5; i++) {
+                const resp = await fetchListData(page, i)
+                if (!resp) {
+                    console.log(`\t\t#${i} failed, try logging in again.`)
                     await wait(10000)
                     continue
                 }
-                const [cover, imgs] = await processImage(d.coverPicture, d.picture)
-                const contacts = {} as Record<string, string>
-                for (let field of contactFields) {
-                    if (field in d && !!d[field] && isValidValue(d[field])) {
-                        contacts[field] = d[field]
+                const {pages, records, total} = resp
+                let k = 0
+                for (let record of records) {
+                    await wait(5000)
+                    const {id} = record
+                    console.log(`${new Date().toLocaleTimeString("zh-CN", {hour12: false})} 第${i}页 ${k++}/${records.length} #${id}`)
+                    const exist = await existData(id)
+                    if (exist) {
+                        console.log(`\t\t#${id} exists`)
+                        continue
                     }
-                }
-                const contactCnt = Object.keys(contacts).length
-                const meta = {} as Record<string, string>
-                for (let field of metaFields) {
-                    if (field in d && !!d[field] && isValidValue(d[field])) {
-                        meta[field] = d[field]
+                    const d = await fetchDetailData(page, id)
+                    if (!d) {
+                        console.log(`\t\t#${id} failed, try logging in again`)
+                        await wait(10000)
+                        continue
                     }
-                }
-                const data = {
-                    orgId: d.id, // 51风流 ID
-                    title: d.title, // 粉红豹标题
-                    contents: d.desc, // 粉红豹描述
-                    hash: md5([d.title, d.desc].join('')),
-                    cityCode: d.cityCode, // 城市ID
-                    district: '', // 区县
-                    contactCnt,
-                    contacts,
-                    meta,
-                    replies: [],
-                    pinned: false, // 是否置顶
-                    replyCnt: 0,
-                    viewCnt: d.viewCount,
-                    anonymous: d.anonymous,
-                    imgCnt: imgs.length,
-                    imgs,
-                    cover,
-                    vipOnly: false,
-                    actived: contactCnt > 0,
-                    deleted: 0,
-                    updated: 0,
-                    created: Math.round(d.createdAt / 1000)
-                } as SchemaFenhongbao
-                const msg = await uploadData(data, cover as string, imgs as string[])
-                console.log(`\ttotal ${msg ? ++cnt : cnt} ${msg || 'faile'}`)
-                if (cnt && cnt % 100===0) {
-                    console.log(`\t\tTotal ${cnt} wait for 300s`)
-                    await wait(300000)
-                    // await closeBrowser()
-                    // console.log(`done ${cnt}`)
-                    // process.exit(0)
+                    const [cover, imgs] = await processImage(d.coverPicture, d.picture)
+                    const contacts = {} as Record<string, string>
+                    for (let field of contactFields) {
+                        if (field in d && !!d[field] && isValidValue(d[field])) {
+                            contacts[field] = d[field]
+                        }
+                    }
+                    const contactCnt = Object.keys(contacts).length
+                    const meta = {} as Record<string, string>
+                    for (let field of metaFields) {
+                        if (field in d && !!d[field] && isValidValue(d[field])) {
+                            meta[field] = d[field]
+                        }
+                    }
+                    const data = {
+                        orgId: d.id, // 51风流 ID
+                        title: d.title, // 粉红豹标题
+                        contents: d.desc, // 粉红豹描述
+                        hash: md5([d.title, d.desc].join('')),
+                        cityCode: d.cityCode, // 城市ID
+                        district: '', // 区县
+                        contactCnt,
+                        contacts,
+                        meta,
+                        replies: [],
+                        pinned: false, // 是否置顶
+                        replyCnt: 0,
+                        viewCnt: d.viewCount,
+                        anonymous: d.anonymous,
+                        imgCnt: imgs.length,
+                        imgs,
+                        cover,
+                        vipOnly: false,
+                        actived: contactCnt > 0,
+                        deleted: 0,
+                        updated: 0,
+                        created: Math.round(d.createdAt / 1000)
+                    } as SchemaFenhongbao
+                    const msg = await uploadData(data, cover as string, imgs as string[])
+                    console.log(`\ttotal ${msg ? ++cnt : cnt} ${msg || 'faile'}`)
+                    if (cnt && cnt % 100===0) {
+                        console.log(`\t\tTotal ${cnt} wait for 300s`)
+                        await wait(300000)
+                        // await closeBrowser()
+                        // console.log(`done ${cnt}`)
+                        // process.exit(0)
+                    }
                 }
             }
+            await closeBrowser()
+        } catch (err) {
+            console.log(err)
         }
-        await closeBrowser()
-    } catch (err) {
-        console.log(err)
+        const spent = Math.round((Date.now() - timestamp) / 1000)
+        const delay = 6 * 3600 - spent
+        console.log(`wait for ${delay}s`)
+        await wait(delay)
     }
-    console.log("done")
 }
 
 const existData = async (orgId: number) => {
