@@ -327,7 +327,7 @@ const main = async () => {
                 for (let record of records) {
                     await wait(5000)
                     const {id} = record
-                    console.log(`${new Date().toLocaleTimeString("zh-CN", {hour12: false})} 第${i}页 ${k++}/${records.length} #${id}`)
+                    console.log(`${new Date().toLocaleTimeString("zh-CN", {hour12: false})} 第${i + 1}页 ${k++}/${records.length} #${id}`)
                     const exist = await existData(id)
                     if (exist) {
                         console.log(`\t\t#${id} exists`)
