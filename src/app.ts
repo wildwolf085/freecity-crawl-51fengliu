@@ -315,7 +315,7 @@ const main = async () => {
             
             
 
-            for (let i = 0; i < 15; i++) {
+            for (let i = 0; i < 10; i++) {
                 const resp = await fetchListData(page, i)
                 if (!resp) {
                     console.log(`\t\t#${i} failed, try logging in again.`)
