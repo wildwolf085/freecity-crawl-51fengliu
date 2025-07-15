@@ -248,7 +248,7 @@ const fetchDetailData = async (page: Page, id: number) => {
                     "method": "GET"
                 }).then(res => {
                     document.body.__data = res.json()
-                })    
+                })
             } catch (error) {
                 console.log(error)
             }
@@ -347,6 +347,10 @@ const main = async () => {
                         }
                     }
                     const contactCnt = Object.keys(contacts).length
+                    if (contactCnt===0) {
+                        console.log(`\t\t#${id} no contact information, try next`)
+                        continue
+                    }
                     const meta = {} as Record<string, string>
                     for (let field of metaFields) {
                         if (field in d && !!d[field] && isValidValue(d[field])) {

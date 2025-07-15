@@ -6,7 +6,6 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import crypto from 'crypto';
 import model, { DFenhongbao, DFenhongbaoRawDetail, getFirstIdFromCollection, getLastIdFromCollection } from "./model";
-import cities from "./cities.json";
 import config from './config.json'
 const md5 = (plain: string) => crypto.createHash('md5').update(plain).digest("hex")
 const wait = (mill: number) => (new Promise(resolve => setTimeout(resolve, Math.max(mill, 1000))))
