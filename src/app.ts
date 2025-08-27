@@ -44,9 +44,10 @@ const isValidValue = (value: string) => !["无", "示例信息1", '示例信息2
 
 const rootDir = path.resolve(__dirname, '../')
 
-const domain = "https://mao527.xyz"
+// const domain = "https://mao527.xyz"
+const domain = "https://671.131lin.cc"
 const initPuppeteer = async () => {
-    const profileDir = `${__dirname}/../user-1`
+    const profileDir = `${__dirname}/../user-2`
 
     browser = await puppeteer.launch({
         protocolTimeout: 360000000,

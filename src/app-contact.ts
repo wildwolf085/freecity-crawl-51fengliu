@@ -54,7 +54,7 @@ const initPuppeteer = async () => {
 
     browser = await puppeteer.launch({
         protocolTimeout: 360000000,
-        headless: false, 
+        // headless: false, 
         args: [
             '--window-size=1920,1080',
             '--disable-features=site-per-process'
