@@ -46,6 +46,7 @@ const rootDir = path.resolve(__dirname, '../')
 
 // const domain = "https://mao527.xyz"
 const domain = "https://671.131lin.cc"
+const imageDomain = "https://s1.img650.xyz"
 const initPuppeteer = async () => {
     const profileDir = `${__dirname}/../user-2`
 
@@ -206,7 +207,6 @@ const fetchListData = async (page: Page, pageNo: number) => {
                     "method": "GET"
                 }).then(res => {
                     document.body.__data = res.json()
-                    
                 }).catch(error => { 
                     console.log(error)
                 })
@@ -284,7 +284,7 @@ const processImage = async (coverPicture: string, picture: string) => {
     let cover = ""
     let imgs = [] as string[]
     if (coverPicture) {
-        const image = await downloadImage(`https://s1.img115.xyz/info/picture/${coverPicture}`, `./data/`)
+        const image = await downloadImage(`${imageDomain}/info/picture/${coverPicture}`, `./data/`)
         if (image) {
             cover = image
         }
@@ -293,7 +293,7 @@ const processImage = async (coverPicture: string, picture: string) => {
     if (!!picture) {
         const x = picture.split(',')
         for (const img of x) {
-            const image = await downloadImage(`https://s1.img115.xyz/info/picture/${img}`, `./data/`)
+            const image = await downloadImage(`${imageDomain}/info/picture/${img}`, `./data/`)
             if (!!image) {
                 imgs.push(image)
             }
@@ -329,11 +329,11 @@ const main = async () => {
                     await wait(5000)
                     const {id} = record
                     console.log(`${new Date().toLocaleTimeString("zh-CN", {hour12: false})} 第${i + 1}页 ${k++}/${records.length} #${id}`)
-                    const exist = await existData(id)
-                    if (exist) {
-                        console.log(`\t\t#${id} exists`)
-                        continue
-                    }
+                    // const exist = await existData(id)
+                    // if (exist) {
+                    //     console.log(`\t\t#${id} exists`)
+                    //     continue
+                    // }
                     const d = await fetchDetailData(page, id)
                     if (!d) {
                         console.log(`\t\t#${id} failed, try logging in again`)
